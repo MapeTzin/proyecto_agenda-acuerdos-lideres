@@ -145,7 +145,7 @@ class KpisAreas extends Component
             $this->kpiValues[$kpi->id] = [];
             
             $latestNote = '';
-            for ($m = 1; $m <= 7; $m++) {
+            for ($m = 1; $m <= 8; $m++) {
                 $res = $results->get($m);
                 $val = $res ? $res->value : -1;
                 if ($val === null) {
@@ -182,7 +182,7 @@ class KpisAreas extends Component
         foreach ($this->kpiValues as $kpiId => $months) {
             $note = $this->kpiNotes[$kpiId] ?? null;
 
-            for ($m = 1; $m <= 7; $m++) {
+            for ($m = 1; $m <= 8; $m++) {
                 $rawVal = $months[$m]['val'] ?? '-';
                 
                 if ($rawVal === '-' || $rawVal === '' || $rawVal === null) {
@@ -221,7 +221,7 @@ class KpisAreas extends Component
                         'value' => $numericVal,
                         'target_value' => 95.00,
                         'period_date' => $dbDate,
-                        'notes' => $m == 7 ? $note : ($m == 6 && empty($months[7]['date']) ? $note : null),
+                        'notes' => $m == 8 ? $note : ($m == 7 && empty($months[8]['date']) ? $note : null),
                         'updated_at' => now(),
                     ]
                 );
@@ -294,7 +294,7 @@ class KpisAreas extends Component
                 'updated_at' => now(),
             ]);
 
-            for ($m = 1; $m <= 7; $m++) {
+            for ($m = 1; $m <= 8; $m++) {
                 $db->table('kpi_results')->insert([
                     'kpi_id' => $kpiId,
                     'year' => $this->selectedYear,
@@ -348,14 +348,15 @@ class KpisAreas extends Component
             4 => 'Abril',
             5 => 'Mayo',
             6 => 'Junio',
-            7 => 'Julio'
+            7 => 'Julio',
+            8 => 'Agosto'
         ];
 
-        $prevMonthNum = 6;
-        $prevMonthName = 'JUNIO';
+        $prevMonthNum = 7;
+        $prevMonthName = 'JULIO';
 
-        $latestMonthNum = 7;
-        $latestMonthName = 'JULIO';
+        $latestMonthNum = 8;
+        $latestMonthName = 'AGOSTO';
 
         // Monitor Global Data calculation
         $monitorData = [];

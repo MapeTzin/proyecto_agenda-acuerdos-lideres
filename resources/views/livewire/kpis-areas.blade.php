@@ -86,7 +86,7 @@
                             {{ $globalDiff >= 0 ? '+' : '' }}{{ $globalDiff }}%
                         </span>
                     </div>
-                    <span style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.35rem; display: block;">Cumplimiento Promedio (Junio)</span>
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.35rem; display: block;">Cumplimiento Promedio ({{ $latestMonthName }})</span>
                 </div>
             </div>
 
@@ -97,7 +97,7 @@
                 </div>
                 <div>
                     <span style="font-size: 1.15rem; font-weight: 900; color: #0f172a; display: block; line-height: 1.2;">
-                        MAYO: <span style="color: #6366f1;">{{ number_format($cumplimientoMayoAvg, 1) }}%</span> ➔ JUNIO: <span style="color: #10b981;">{{ number_format($cumplimientoJunioAvg, 1) }}%</span>
+                        {{ strtoupper($prevMonthName) }}: <span style="color: #6366f1;">{{ number_format($cumplimientoMayoAvg, 1) }}%</span> ➔ {{ strtoupper($latestMonthName) }}: <span style="color: #10b981;">{{ number_format($cumplimientoJunioAvg, 1) }}%</span>
                     </span>
                     <span style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 0.35rem; display: block;">Comparativo Global Mensual</span>
                 </div>
@@ -111,7 +111,7 @@
                     <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">
                         <i class="fas fa-table-columns" style="color: #6366f1; margin-right: 0.5rem;"></i> Tabla de Monitoreo de KPI´s por Área
                     </h3>
-                    <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Consolidado de desempeño por departamento (Junio 2026)</span>
+                    <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Consolidado de desempeño por departamento ({{ $latestMonthName }} 2026)</span>
                 </div>
             </div>
 
