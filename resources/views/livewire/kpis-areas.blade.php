@@ -11,34 +11,68 @@
         </p>
     </div>
 
-    <!-- View Selector (Vista Corporativa for Admins vs Locked Area for Regular Users) -->
+    <!-- View Selector (Vista Corporativa for Admins vs Locked Area for Regular Users) + Month Filter -->
     <div style="display: flex; justify-content: center; margin-bottom: 3rem;">
         <div style="background: white; padding: 1.25rem 2.5rem; border-radius: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 2rem; border-top: 4px solid #6366f1; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 42px; height: 42px; background: #eef2ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6366f1; font-size: 1.1rem;">
-                    <i class="fas fa-layer-group"></i>
+            
+            <!-- Area Selector Portion -->
+            <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 42px; height: 42px; background: #eef2ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6366f1; font-size: 1.1rem;">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Área de Trabajo</span>
+                        <label style="font-weight: 800; color: #1e293b; font-size: 1.05rem;">
+                            {{ $isAdminUser ? 'Área de Negocio' : $selectedArea }}
+                        </label>
+                    </div>
                 </div>
-                <div>
-                    <span style="display: block; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Área de Trabajo</span>
-                    <label style="font-weight: 800; color: #1e293b; font-size: 1.05rem;">
-                        {{ $isAdminUser ? 'Área de Negocio' : $selectedArea }}
-                    </label>
-                </div>
+
+                @if($isAdminUser)
+                    <select wire:model.live="selectedArea"
+                        style="padding: 0.8rem 1.5rem; border-radius: 1rem; border: 2px solid #e2e8f0; outline: none; font-family: inherit; background: #f8fafc; min-width: 320px; cursor: pointer; font-weight: 700; color: #6366f1; font-size: 1.05rem;">
+                        <option value="">Vista Corporativa (Todas las Áreas)</option>
+                        @foreach($officialAreas as $areaOption)
+                            <option value="{{ $areaOption }}">{{ $areaOption }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    <div style="background: #eef2ff; color: #6366f1; padding: 0.6rem 1.5rem; border-radius: 1rem; font-weight: 800; font-size: 1rem; border: 1px solid #c7d2fe;">
+                        <i class="fas fa-lock" style="margin-right: 0.4rem; font-size: 0.85rem;"></i> {{ $selectedArea }}
+                    </div>
+                @endif
             </div>
 
-            @if($isAdminUser)
-                <select wire:model.live="selectedArea"
-                    style="padding: 0.8rem 1.5rem; border-radius: 1rem; border: 2px solid #e2e8f0; outline: none; font-family: inherit; background: #f8fafc; min-width: 320px; cursor: pointer; font-weight: 700; color: #6366f1; font-size: 1.05rem;">
-                    <option value="">Vista Corporativa (Todas las Áreas)</option>
-                    @foreach($officialAreas as $areaOption)
-                        <option value="{{ $areaOption }}">{{ $areaOption }}</option>
-                    @endforeach
-                </select>
-            @else
-                <div style="background: #eef2ff; color: #6366f1; padding: 0.6rem 1.5rem; border-radius: 1rem; font-weight: 800; font-size: 1rem; border: 1px solid #c7d2fe;">
-                    <i class="fas fa-lock" style="margin-right: 0.4rem; font-size: 0.85rem;"></i> {{ $selectedArea }}
+            <!-- Month Filter Portion -->
+            <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; border-left: 2px solid #f1f5f9; padding-left: 2rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 42px; height: 42px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 1.1rem;">
+                        <i class="fas fa-calendar-days"></i>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Mes de Evaluación</span>
+                        <label style="font-weight: 800; color: #1e293b; font-size: 1.05rem;">Seleccionar Mes</label>
+                    </div>
                 </div>
-            @endif
+
+                <select wire:model.live="selectedMonth"
+                    style="padding: 0.8rem 1.5rem; border-radius: 1rem; border: 2px solid #e2e8f0; outline: none; font-family: inherit; background: #f8fafc; min-width: 180px; cursor: pointer; font-weight: 700; color: #10b981; font-size: 1.05rem;">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+
         </div>
     </div>
 
@@ -213,6 +247,9 @@
                                 <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 500; text-transform: none;">({{ $week['range'] }})</span>
                             </th>
                         @endforeach
+                        <th style="text-align: center; padding: 0.75rem 0.5rem; color: #475569; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 100px; background: #f8fafc;">
+                            TOTAL MENSUAL
+                        </th>
                         <th style="text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 220px;">
                             CIERRE DE SEMANA
                         </th>
@@ -299,6 +336,30 @@
                                     </div>
                                 </td>
                             @endforeach
+
+                            <!-- Monthly Acumulado Column -->
+                            @php
+                                $mVal = $kpiMonthlyValues[$kpi->id] ?? '-';
+                                $mDotColor = '#94a3b8'; // default grey
+                                if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal)) {
+                                    $num = (float)$mVal;
+                                    if ($num >= $kpi->target) {
+                                        $mDotColor = '#10b981'; // green
+                                    } elseif ($num >= ($kpi->target - 5)) {
+                                        $mDotColor = '#f59e0b'; // yellow
+                                    } else {
+                                        $mDotColor = '#ef4444'; // red
+                                    }
+                                }
+                            @endphp
+                            <td style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                    <span style="font-weight: 800; font-size: 0.95rem; color: #1e293b;">
+                                        {{ $mVal !== '-' ? $mVal . '%' : '-' }}
+                                    </span>
+                                    <span style="width: 10px; height: 10px; border-radius: 50%; background: {{ $mDotColor }}; display: inline-block;"></span>
+                                </div>
+                            </td>
 
                             <!-- Justification / Note Field -->
                             <td style="padding: 1rem; vertical-align: top;">

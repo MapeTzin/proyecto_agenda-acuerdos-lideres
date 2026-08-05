@@ -9,20 +9,70 @@ class KpisAreas extends Component
 {
     public $selectedArea = ''; // Empty string = Monitor Global (Vista Corporativa)
     public $selectedYear = 2026;
+    public $selectedMonth = 8; // Default to August (month 8)
     public $isAdminUser = false;
     public $userAreaName = 'CONTABILIDAD';
     
-    // KPI input data binding: [kpi_id => [month => ['val' => ..., 'date' => ...]]]
+    // KPI input data binding
     public $kpiValues = [];
     public $kpiNotes = [];
+    public $kpiMonthlyValues = []; // Monthly totals mapping
 
-    public $weeksList = [
-        1 => ['label' => 'Semana 1', 'range' => '3 al 7'],
-        2 => ['label' => 'Semana 2', 'range' => '10 al 14'],
-        3 => ['label' => 'Semana 3', 'range' => '17 al 21'],
-        4 => ['label' => 'Semana 4', 'range' => '24 al 28'],
-        5 => ['label' => 'Semana 5', 'range' => '31']
-    ];
+    public $weeksList = [];
+
+    public function getWeeksOfMonth($year, $month)
+    {
+        $weeks = [];
+        $firstDay = \Carbon\Carbon::createFromDate($year, $month, 1);
+        $lastDay = \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        
+        $currentDay = $firstDay->copy();
+        $weekNum = 1;
+        $weekStart = null;
+        $weekEnd = null;
+        
+        while ($currentDay->lte($lastDay)) {
+            if ($currentDay->isWeekend()) {
+                if ($weekStart !== null) {
+                    $weeks[$weekNum] = [
+                        'label' => "Semana $weekNum",
+                        'range' => $weekStart->day === $weekEnd->day ? "{$weekStart->day}" : "{$weekStart->day} al {$weekEnd->day}"
+                    ];
+                    $weekNum++;
+                    $weekStart = null;
+                    $weekEnd = null;
+                }
+                $currentDay->addDay();
+                continue;
+            }
+            
+            if ($weekStart === null) {
+                $weekStart = $currentDay->copy();
+            }
+            $weekEnd = $currentDay->copy();
+            
+            if ($currentDay->isFriday() || $currentDay->copy()->addDay()->month !== (int)$month) {
+                $weeks[$weekNum] = [
+                    'label' => "Semana $weekNum",
+                    'range' => $weekStart->day === $weekEnd->day ? "{$weekStart->day}" : "{$weekStart->day} al {$weekEnd->day}"
+                ];
+                $weekNum++;
+                $weekStart = null;
+                $weekEnd = null;
+            }
+            
+            $currentDay->addDay();
+        }
+        
+        if ($weekStart !== null) {
+            $weeks[$weekNum] = [
+                'label' => "Semana $weekNum",
+                'range' => $weekStart->day === $weekEnd->day ? "{$weekStart->day}" : "{$weekStart->day} al {$weekEnd->day}"
+            ];
+        }
+        
+        return $weeks;
+    }
 
     // Modal fields for Create/Edit KPI
     public $showModal = false;
@@ -101,6 +151,14 @@ class KpisAreas extends Component
             $this->selectedArea = $this->userAreaName; // Non-admin locks to their area
         }
 
+        $this->selectedMonth = 8; // Default to August
+        $this->weeksList = $this->getWeeksOfMonth($this->selectedYear, $this->selectedMonth);
+        $this->loadKpiData();
+    }
+
+    public function updatedSelectedMonth()
+    {
+        $this->weeksList = $this->getWeeksOfMonth($this->selectedYear, $this->selectedMonth);
         $this->loadKpiData();
     }
 
@@ -126,6 +184,7 @@ class KpisAreas extends Component
         if (empty($this->selectedArea)) {
             $this->kpiValues = [];
             $this->kpiNotes = [];
+            $this->kpiMonthlyValues = [];
             return;
         }
 
@@ -142,19 +201,22 @@ class KpisAreas extends Component
 
         $this->kpiValues = [];
         $this->kpiNotes = [];
+        $this->kpiMonthlyValues = [];
+
+        $totalWeeks = count($this->weeksList);
 
         foreach ($kpis as $kpi) {
             $results = $db->table('kpi_results')
                 ->where('kpi_id', $kpi->id)
                 ->where('year', $this->selectedYear)
-                ->where('month', 8)
+                ->where('month', $this->selectedMonth)
                 ->get()
                 ->keyBy('semana');
 
             $this->kpiValues[$kpi->id] = [];
             
             $latestNote = '';
-            for ($w = 1; $w <= 5; $w++) {
+            for ($w = 1; $w <= $totalWeeks; $w++) {
                 $res = $results->get($w);
                 $val = $res ? $res->value : -1;
                 if ($val === null || $val == -1.00) {
@@ -176,13 +238,23 @@ class KpisAreas extends Component
                 }
             }
 
-            // Also load notes from the monthly record (semana is null)
-            $monthlyRes = $db->table('kpi_results')
-                ->where('kpi_id', $kpi->id)
-                ->where('year', $this->selectedYear)
-                ->where('month', 8)
-                ->whereNull('semana')
-                ->first();
+            // Also load notes and monthly value from the monthly record (semana is null)
+            $monthlyRes = $results->get(null);
+            if (!$monthlyRes) {
+                $monthlyRes = $db->table('kpi_results')
+                    ->where('kpi_id', $kpi->id)
+                    ->where('year', $this->selectedYear)
+                    ->where('month', $this->selectedMonth)
+                    ->whereNull('semana')
+                    ->first();
+            }
+
+            $monthlyVal = $monthlyRes ? $monthlyRes->value : -1;
+            if ($monthlyVal === null || $monthlyVal == -1.00) {
+                $monthlyVal = -1;
+            }
+
+            $this->kpiMonthlyValues[$kpi->id] = $monthlyVal == -1 ? '-' : (float)$monthlyVal;
 
             if ($monthlyRes && !empty($monthlyRes->notes)) {
                 $latestNote = $monthlyRes->notes;
@@ -199,13 +271,14 @@ class KpisAreas extends Component
         }
 
         $db = DB::connection('sistema_tickets');
+        $totalWeeks = count($this->weeksList);
 
         foreach ($this->kpiValues as $kpiId => $weeks) {
             $note = $this->kpiNotes[$kpiId] ?? null;
             $sumVal = 0;
             $hasAnyVal = false;
 
-            for ($w = 1; $w <= 5; $w++) {
+            for ($w = 1; $w <= $totalWeeks; $w++) {
                 $rawVal = $weeks[$w]['val'] ?? '-';
                 
                 if ($rawVal === '-' || $rawVal === '' || $rawVal === null) {
@@ -240,7 +313,7 @@ class KpisAreas extends Component
                     [
                         'kpi_id' => $kpiId,
                         'year' => $this->selectedYear,
-                        'month' => 8,
+                        'month' => $this->selectedMonth,
                         'semana' => $w
                     ],
                     [
@@ -260,7 +333,7 @@ class KpisAreas extends Component
                 [
                     'kpi_id' => $kpiId,
                     'year' => $this->selectedYear,
-                    'month' => 8,
+                    'month' => $this->selectedMonth,
                     'semana' => null
                 ],
                 [
@@ -340,11 +413,13 @@ class KpisAreas extends Component
             ]);
 
             // Create default results for month 8 (weeks 1 to 5)
-            for ($w = 1; $w <= 5; $w++) {
+            // Create default results for active month and weeks
+            $totalWeeks = count($this->weeksList);
+            for ($w = 1; $w <= $totalWeeks; $w++) {
                 $db->table('kpi_results')->insert([
                     'kpi_id' => $kpiId,
                     'year' => $this->selectedYear,
-                    'month' => 8,
+                    'month' => $this->selectedMonth,
                     'semana' => $w,
                     'value' => -1,
                     'target_value' => 25.00,
@@ -353,8 +428,8 @@ class KpisAreas extends Component
                 ]);
             }
 
-            // Create default results for months 1 to 8 (monthly summary rows, semana = null)
-            for ($m = 1; $m <= 8; $m++) {
+            // Create default results for months 1 to 12 (monthly summary rows, semana = null)
+            for ($m = 1; $m <= 12; $m++) {
                 $db->table('kpi_results')->insert([
                     'kpi_id' => $kpiId,
                     'year' => $this->selectedYear,
@@ -403,21 +478,17 @@ class KpisAreas extends Component
         ];
 
         $monthsList = [
-            1 => 'Enero',
-            2 => 'Febrero',
-            3 => 'Marzo',
-            4 => 'Abril',
-            5 => 'Mayo',
-            6 => 'Junio',
-            7 => 'Julio',
-            8 => 'Agosto'
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
 
-        $prevMonthNum = 7;
-        $prevMonthName = 'JULIO';
+        $latestMonthNum = (int)$this->selectedMonth;
+        $prevMonthNum = $latestMonthNum === 1 ? 12 : $latestMonthNum - 1;
+        $prevMonthYear = $latestMonthNum === 1 ? $this->selectedYear - 1 : $this->selectedYear;
 
-        $latestMonthNum = 8;
-        $latestMonthName = 'AGOSTO';
+        $latestMonthName = strtoupper($monthsList[$latestMonthNum]);
+        $prevMonthName = strtoupper($monthsList[$prevMonthNum]);
 
         // Monitor Global Data calculation
         $monitorData = [];
@@ -445,7 +516,7 @@ class KpisAreas extends Component
             // Mayo Average (Month 5)
             $avgMayo = $totalKpis > 0 ? $db->table('kpi_results')
                 ->whereIn('kpi_id', $kpiIds)
-                ->where('year', 2026)
+                ->where('year', $prevMonthYear)
                 ->where('month', $prevMonthNum)
                 ->whereNull('semana')
                 ->where('value', '>=', 0)
@@ -456,7 +527,7 @@ class KpisAreas extends Component
             // Junio Average (Month 6)
             $avgJunio = $totalKpis > 0 ? $db->table('kpi_results')
                 ->whereIn('kpi_id', $kpiIds)
-                ->where('year', 2026)
+                ->where('year', $this->selectedYear)
                 ->where('month', $latestMonthNum)
                 ->whereNull('semana')
                 ->where('value', '>=', 0)
@@ -487,7 +558,7 @@ class KpisAreas extends Component
             foreach ($kpisForArea as $kpiObj) {
                 $resM = $db->table('kpi_results')
                     ->where('kpi_id', $kpiObj->id)
-                    ->where('year', 2026)
+                    ->where('year', $prevMonthYear)
                     ->where('month', $prevMonthNum)
                     ->whereNull('semana')
                     ->first();
@@ -520,7 +591,7 @@ class KpisAreas extends Component
             foreach ($kpisForArea as $kpiObj) {
                 $resJ = $db->table('kpi_results')
                     ->where('kpi_id', $kpiObj->id)
-                    ->where('year', 2026)
+                    ->where('year', $this->selectedYear)
                     ->where('month', $latestMonthNum)
                     ->whereNull('semana')
                     ->first();
