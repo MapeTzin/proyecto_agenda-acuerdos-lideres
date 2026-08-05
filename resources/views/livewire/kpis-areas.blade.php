@@ -207,9 +207,10 @@
                         <th style="text-align: center; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 130px;">
                             MEDIA (META)
                         </th>
-                        @foreach($monthsList as $mNum => $mName)
-                            <th style="text-align: center; padding: 0.75rem 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 65px;">
-                                {{ $mName }}
+                        @foreach($weeksList as $wNum => $week)
+                            <th style="text-align: center; padding: 0.75rem 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 80px;">
+                                {{ $week['label'] }}<br>
+                                <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 500; text-transform: none;">({{ $week['range'] }})</span>
                             </th>
                         @endforeach
                         <th style="text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 220px;">
@@ -249,32 +250,32 @@
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                        <span style="color: #334155;">≥ {{ number_format($kpi->target, 0) }}%</span>
+                                        <span style="color: #334155;">≥ 25%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-                                        <span style="color: #334155;">90% - 94%</span>
+                                        <span style="color: #334155;">20% - 24%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
-                                        <span style="color: #334155;">&lt; 90%</span>
+                                        <span style="color: #334155;">&lt; 20%</span>
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- Monthly Values Columns -->
-                            @foreach($monthsList as $mNum => $mName)
+                            <!-- Weekly Values Columns -->
+                            @foreach($weeksList as $wNum => $week)
                                 @php
-                                    $mInfo = $kpiValues[$kpi->id][$mNum] ?? ['val' => '-', 'date' => ''];
-                                    $val = $mInfo['val'];
-                                    $dateStr = $mInfo['date'];
+                                    $wInfo = $kpiValues[$kpi->id][$wNum] ?? ['val' => '-', 'date' => ''];
+                                    $val = $wInfo['val'];
+                                    $dateStr = $wInfo['date'];
 
                                     $dotColor = '#94a3b8'; // default grey
                                     if ($val !== '-' && $val !== '' && is_numeric($val)) {
                                         $num = (float)$val;
-                                        if ($num >= $kpi->target) {
+                                        if ($num >= 25.00) {
                                             $dotColor = '#10b981'; // green
-                                        } elseif ($num >= ($kpi->target - 5)) {
+                                        } elseif ($num >= 20.00) {
                                             $dotColor = '#f59e0b'; // yellow
                                         } else {
                                             $dotColor = '#ef4444'; // red
@@ -284,9 +285,9 @@
                                 <td style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center;">
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                         <input type="text"
-                                            wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $mNum }}.val"
+                                            wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
                                             value="{{ $val }}"
-                                            data-target="{{ $kpi->target }}"
+                                            data-target="25"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
                                         
@@ -330,20 +331,20 @@
         <!-- Global Average Footer Section -->
         <div style="background: white; border-radius: 1.25rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03); padding: 1.25rem 1.75rem; margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;">
             <div style="text-align: center; font-weight: 800; color: #1e293b; font-size: 1.05rem; letter-spacing: -0.2px;">
-                Promedio Global de KPIs por Mes ({{ $selectedArea }})
+                Promedio Global de KPIs por Semana (Agosto - {{ $selectedArea }})
             </div>
             <div style="display: flex; justify-content: center; gap: 1.25rem; flex-wrap: wrap;">
-                @foreach($monthsList as $mNum => $mName)
+                @foreach($weeksList as $wNum => $week)
                     @php
-                        $avg = $monthlyAverages[$mNum] ?? '-';
+                        $avg = $weeklyAverages[$wNum] ?? '-';
                         $badgeBg = '#f1f5f9';
                         $badgeColor = '#64748b';
 
                         if ($avg !== '-' && is_numeric($avg)) {
-                            if ($avg >= 95) {
+                            if ($avg >= 25) {
                                 $badgeBg = '#d1fae5';
                                 $badgeColor = '#065f46';
-                            } elseif ($avg >= 90) {
+                            } elseif ($avg >= 20) {
                                 $badgeBg = '#fef3c7';
                                 $badgeColor = '#92400e';
                             } else {
@@ -353,7 +354,7 @@
                         }
                     @endphp
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #f8fafc; padding: 0.75rem 1.25rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; min-width: 90px;">
-                        <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">{{ $mName }}</span>
+                        <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">{{ $week['label'] }}</span>
                         <span style="font-size: 1.1rem; font-weight: 800; background: {{ $badgeBg }}; color: {{ $badgeColor }}; padding: 2px 10px; border-radius: 9999px; display: inline-block;">
                             {{ $avg !== '-' ? $avg . '%' : '-' }}
                         </span>

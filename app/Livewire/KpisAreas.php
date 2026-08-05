@@ -16,6 +16,14 @@ class KpisAreas extends Component
     public $kpiValues = [];
     public $kpiNotes = [];
 
+    public $weeksList = [
+        1 => ['label' => 'Semana 1', 'range' => '3 al 7'],
+        2 => ['label' => 'Semana 2', 'range' => '10 al 14'],
+        3 => ['label' => 'Semana 3', 'range' => '17 al 21'],
+        4 => ['label' => 'Semana 4', 'range' => '24 al 28'],
+        5 => ['label' => 'Semana 5', 'range' => '31']
+    ];
+
     // Modal fields for Create/Edit KPI
     public $showModal = false;
     public $editingKpiId = null;
@@ -139,16 +147,17 @@ class KpisAreas extends Component
             $results = $db->table('kpi_results')
                 ->where('kpi_id', $kpi->id)
                 ->where('year', $this->selectedYear)
+                ->where('month', 8)
                 ->get()
-                ->keyBy('month');
+                ->keyBy('semana');
 
             $this->kpiValues[$kpi->id] = [];
             
             $latestNote = '';
-            for ($m = 1; $m <= 8; $m++) {
-                $res = $results->get($m);
+            for ($w = 1; $w <= 5; $w++) {
+                $res = $results->get($w);
                 $val = $res ? $res->value : -1;
-                if ($val === null) {
+                if ($val === null || $val == -1.00) {
                     $val = -1;
                 }
                 
@@ -157,7 +166,7 @@ class KpisAreas extends Component
                     $dateStr = \Carbon\Carbon::parse($res->period_date)->format('d/m/Y');
                 }
 
-                $this->kpiValues[$kpi->id][$m] = [
+                $this->kpiValues[$kpi->id][$w] = [
                     'val' => $val == -1 ? '-' : (float)$val,
                     'date' => $dateStr,
                 ];
@@ -165,6 +174,18 @@ class KpisAreas extends Component
                 if ($res && !empty($res->notes)) {
                     $latestNote = $res->notes;
                 }
+            }
+
+            // Also load notes from the monthly record (semana is null)
+            $monthlyRes = $db->table('kpi_results')
+                ->where('kpi_id', $kpi->id)
+                ->where('year', $this->selectedYear)
+                ->where('month', 8)
+                ->whereNull('semana')
+                ->first();
+
+            if ($monthlyRes && !empty($monthlyRes->notes)) {
+                $latestNote = $monthlyRes->notes;
             }
 
             $this->kpiNotes[$kpi->id] = $latestNote;
@@ -179,18 +200,22 @@ class KpisAreas extends Component
 
         $db = DB::connection('sistema_tickets');
 
-        foreach ($this->kpiValues as $kpiId => $months) {
+        foreach ($this->kpiValues as $kpiId => $weeks) {
             $note = $this->kpiNotes[$kpiId] ?? null;
+            $sumVal = 0;
+            $hasAnyVal = false;
 
-            for ($m = 1; $m <= 8; $m++) {
-                $rawVal = $months[$m]['val'] ?? '-';
+            for ($w = 1; $w <= 5; $w++) {
+                $rawVal = $weeks[$w]['val'] ?? '-';
                 
                 if ($rawVal === '-' || $rawVal === '' || $rawVal === null) {
                     $numericVal = -1;
                     $dbDate = null;
                 } else {
                     $numericVal = (float)$rawVal;
-                    $dateInput = $months[$m]['date'] ?? null;
+                    $sumVal += $numericVal;
+                    $hasAnyVal = true;
+                    $dateInput = $weeks[$w]['date'] ?? null;
                     if (empty($dateInput)) {
                         $dbDate = now()->format('Y-m-d');
                     } else {
@@ -215,17 +240,37 @@ class KpisAreas extends Component
                     [
                         'kpi_id' => $kpiId,
                         'year' => $this->selectedYear,
-                        'month' => $m
+                        'month' => 8,
+                        'semana' => $w
                     ],
                     [
                         'value' => $numericVal,
-                        'target_value' => 95.00,
+                        'target_value' => 25.00,
                         'period_date' => $dbDate,
-                        'notes' => $m == 8 ? $note : ($m == 7 && empty($months[8]['date']) ? $note : null),
+                        'notes' => null,
                         'updated_at' => now(),
                     ]
                 );
             }
+
+            // Save the monthly sum in the row with semana = null
+            $monthlyVal = $hasAnyVal ? $sumVal : -1;
+
+            $db->table('kpi_results')->updateOrInsert(
+                [
+                    'kpi_id' => $kpiId,
+                    'year' => $this->selectedYear,
+                    'month' => 8,
+                    'semana' => null
+                ],
+                [
+                    'value' => $monthlyVal,
+                    'target_value' => 95.00,
+                    'period_date' => now()->format('Y-m-d'),
+                    'notes' => $note,
+                    'updated_at' => now(),
+                ]
+            );
         }
 
         session()->flash('success', '¡Porcentajes y avances de KPI´s guardados exitosamente!');
@@ -294,11 +339,27 @@ class KpisAreas extends Component
                 'updated_at' => now(),
             ]);
 
+            // Create default results for month 8 (weeks 1 to 5)
+            for ($w = 1; $w <= 5; $w++) {
+                $db->table('kpi_results')->insert([
+                    'kpi_id' => $kpiId,
+                    'year' => $this->selectedYear,
+                    'month' => 8,
+                    'semana' => $w,
+                    'value' => -1,
+                    'target_value' => 25.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Create default results for months 1 to 8 (monthly summary rows, semana = null)
             for ($m = 1; $m <= 8; $m++) {
                 $db->table('kpi_results')->insert([
                     'kpi_id' => $kpiId,
                     'year' => $this->selectedYear,
                     'month' => $m,
+                    'semana' => null,
                     'value' => -1,
                     'target_value' => $this->newKpiTarget,
                     'created_at' => now(),
@@ -386,6 +447,7 @@ class KpisAreas extends Component
                 ->whereIn('kpi_id', $kpiIds)
                 ->where('year', 2026)
                 ->where('month', $prevMonthNum)
+                ->whereNull('semana')
                 ->where('value', '>=', 0)
                 ->avg('value') : null;
             $pctMayo = $avgMayo !== null ? round($avgMayo, 1) : 0;
@@ -396,6 +458,7 @@ class KpisAreas extends Component
                 ->whereIn('kpi_id', $kpiIds)
                 ->where('year', 2026)
                 ->where('month', $latestMonthNum)
+                ->whereNull('semana')
                 ->where('value', '>=', 0)
                 ->avg('value') : null;
             $pctJunio = $avgJunio !== null ? round($avgJunio, 1) : 0;
@@ -426,6 +489,7 @@ class KpisAreas extends Component
                     ->where('kpi_id', $kpiObj->id)
                     ->where('year', 2026)
                     ->where('month', $prevMonthNum)
+                    ->whereNull('semana')
                     ->first();
 
                 $vM = ($resM && $resM->value !== null) ? (float)$resM->value : -1;
@@ -458,6 +522,7 @@ class KpisAreas extends Component
                     ->where('kpi_id', $kpiObj->id)
                     ->where('year', 2026)
                     ->where('month', $latestMonthNum)
+                    ->whereNull('semana')
                     ->first();
 
                 $vJ = ($resJ && $resJ->value !== null) ? (float)$resJ->value : -1;
@@ -527,7 +592,7 @@ class KpisAreas extends Component
 
         // Individual Area Data if an area is selected
         $kpis = collect();
-        $monthlyAverages = [];
+        $weeklyAverages = [];
 
         if (!empty($this->selectedArea)) {
             $kpis = $db->table('kpis')
@@ -539,19 +604,19 @@ class KpisAreas extends Component
                 ->orderBy('id', 'asc')
                 ->get();
 
-            foreach ($monthsList as $mNum => $mName) {
+            for ($w = 1; $w <= 5; $w++) {
                 $sum = 0;
                 $count = 0;
 
                 foreach ($kpis as $kpi) {
-                    $mVal = $this->kpiValues[$kpi->id][$mNum]['val'] ?? '-';
-                    if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal) && (float)$mVal >= 0) {
-                        $sum += (float)$mVal;
+                    $wVal = $this->kpiValues[$kpi->id][$w]['val'] ?? '-';
+                    if ($wVal !== '-' && $wVal !== '' && is_numeric($wVal) && (float)$wVal >= 0) {
+                        $sum += (float)$wVal;
                         $count++;
                     }
                 }
 
-                $monthlyAverages[$mNum] = $count > 0 ? round($sum / $count, 1) : '-';
+                $weeklyAverages[$w] = $count > 0 ? round($sum / $count, 1) : '-';
             }
         }
 
@@ -573,7 +638,8 @@ class KpisAreas extends Component
             'selectedArea' => $this->selectedArea,
             'kpis' => $kpis,
             'monthsList' => $monthsList,
-            'monthlyAverages' => $monthlyAverages
+            'weeksList' => $this->weeksList,
+            'weeklyAverages' => $weeklyAverages
         ])->extends('layouts.app')->section('content');
     }
 }
