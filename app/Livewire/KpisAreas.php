@@ -16,6 +16,7 @@ class KpisAreas extends Component
     // KPI input data binding
     public $kpiValues = [];
     public $kpiNotes = [];
+    public $kpiStartNotes = []; // Bindings for Inicio de Semana comments
     public $kpiMonthlyValues = []; // Monthly totals mapping
 
     public $weeksList = [];
@@ -184,6 +185,7 @@ class KpisAreas extends Component
         if (empty($this->selectedArea)) {
             $this->kpiValues = [];
             $this->kpiNotes = [];
+            $this->kpiStartNotes = [];
             $this->kpiMonthlyValues = [];
             return;
         }
@@ -201,6 +203,7 @@ class KpisAreas extends Component
 
         $this->kpiValues = [];
         $this->kpiNotes = [];
+        $this->kpiStartNotes = [];
         $this->kpiMonthlyValues = [];
 
         $totalWeeks = count($this->weeksList);
@@ -216,6 +219,7 @@ class KpisAreas extends Component
             $this->kpiValues[$kpi->id] = [];
             
             $latestNote = '';
+            $latestStartNote = '';
             for ($w = 1; $w <= $totalWeeks; $w++) {
                 $res = $results->get($w);
                 $val = $res ? $res->value : -1;
@@ -233,8 +237,13 @@ class KpisAreas extends Component
                     'date' => $dateStr,
                 ];
 
-                if ($res && !empty($res->notes)) {
-                    $latestNote = $res->notes;
+                if ($res) {
+                    if (!empty($res->notes)) {
+                        $latestNote = $res->notes;
+                    }
+                    if (!empty($res->inicio_semana)) {
+                        $latestStartNote = $res->inicio_semana;
+                    }
                 }
             }
 
@@ -256,11 +265,17 @@ class KpisAreas extends Component
 
             $this->kpiMonthlyValues[$kpi->id] = $monthlyVal == -1 ? '-' : (float)$monthlyVal;
 
-            if ($monthlyRes && !empty($monthlyRes->notes)) {
-                $latestNote = $monthlyRes->notes;
+            if ($monthlyRes) {
+                if (!empty($monthlyRes->notes)) {
+                    $latestNote = $monthlyRes->notes;
+                }
+                if (!empty($monthlyRes->inicio_semana)) {
+                    $latestStartNote = $monthlyRes->inicio_semana;
+                }
             }
 
             $this->kpiNotes[$kpi->id] = $latestNote;
+            $this->kpiStartNotes[$kpi->id] = $latestStartNote;
         }
     }
 
@@ -275,6 +290,7 @@ class KpisAreas extends Component
 
         foreach ($this->kpiValues as $kpiId => $weeks) {
             $note = $this->kpiNotes[$kpiId] ?? null;
+            $startNote = $this->kpiStartNotes[$kpiId] ?? null;
             $sumVal = 0;
             $hasAnyVal = false;
 
@@ -321,6 +337,7 @@ class KpisAreas extends Component
                         'target_value' => 25.00,
                         'period_date' => $dbDate,
                         'notes' => null,
+                        'inicio_semana' => null,
                         'updated_at' => now(),
                     ]
                 );
@@ -341,6 +358,7 @@ class KpisAreas extends Component
                     'target_value' => 95.00,
                     'period_date' => now()->format('Y-m-d'),
                     'notes' => $note,
+                    'inicio_semana' => $startNote,
                     'updated_at' => now(),
                 ]
             );

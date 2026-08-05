@@ -251,6 +251,9 @@
                             TOTAL MENSUAL
                         </th>
                         <th style="text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 220px;">
+                            INICIO DE SEMANA
+                        </th>
+                        <th style="text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 220px;">
                             CIERRE DE SEMANA
                         </th>
                     </tr>
@@ -361,7 +364,16 @@
                                 </div>
                             </td>
 
-                            <!-- Justification / Note Field -->
+                            <!-- Inicio de Semana Field -->
+                            <td style="padding: 1rem; vertical-align: top;">
+                                <textarea
+                                    wire:model.defer="kpiStartNotes.{{ $kpi->id }}"
+                                    placeholder="Inicio de semana..."
+                                    rows="3"
+                                    style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 0.78rem; font-family: inherit; color: #334155; outline: none; resize: vertical; min-height: 52px; line-height: 1.35; background: white; transition: border-color 0.2s;"></textarea>
+                            </td>
+
+                            <!-- Cierre de Semana Field -->
                             <td style="padding: 1rem; vertical-align: top;">
                                 <textarea
                                     wire:model.defer="kpiNotes.{{ $kpi->id }}"
