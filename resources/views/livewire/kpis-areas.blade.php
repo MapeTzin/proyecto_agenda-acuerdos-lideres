@@ -238,6 +238,9 @@
                         <th style="text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 240px;">
                             NOMBRE DE KPI
                         </th>
+                        <th style="text-align: center; padding: 0.75rem 1rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 130px;">
+                            MEDIA (META)
+                        </th>
                         @foreach($weeksList as $wNum => $week)
                             <th style="text-align: center; padding: 0.75rem 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; min-width: 80px;">
                                 {{ $week['label'] }}<br>
@@ -278,6 +281,24 @@
                                         <button wire:click="deleteKpi({{ $kpi->id }})" wire:confirm="¿Estás seguro de eliminar este KPI?" title="Eliminar KPI" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
                                             <i class="fas fa-trash-can"></i>
                                         </button>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Meta Legend Card -->
+                            <td style="padding: 1rem; vertical-align: top; text-align: center;">
+                                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                        <span style="color: #334155;">≥ 25%</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                                        <span style="color: #334155;">20% - 24%</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+                                        <span style="color: #334155;">&lt; 20%</span>
                                     </div>
                                 </div>
                             </td>
@@ -363,7 +384,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 3rem; color: #64748b;">
+                            <td colspan="10" style="text-align: center; padding: 3rem; color: #64748b;">
                                 <i class="fas fa-chart-pie" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.4;"></i>
                                 No hay KPI´s registrados para el área de <strong>{{ $selectedArea }}</strong>.
                             </td>
