@@ -168,7 +168,7 @@
                 </thead>
                 <tbody>
                     @foreach($monitorData as $item)
-                        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer;" wire:click="selectArea('{{ $item['area'] }}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                        <tr wire:key="monitor-row-{{ $item['area'] }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer;" wire:click="selectArea('{{ $item['area'] }}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                             <!-- Area Name -->
                             <td style="padding: 1rem 0.8rem; white-space: nowrap;">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -260,7 +260,7 @@
                 </thead>
                 <tbody>
                     @forelse($kpis as $kpi)
-                        <tr style="border-bottom: 1px solid #f8fafc;">
+                        <tr wire:key="kpi-row-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="border-bottom: 1px solid #f8fafc;">
                             <!-- KPI Name & Description + Actions -->
                             <td style="padding: 1rem; vertical-align: top;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
@@ -286,7 +286,7 @@
                             </td>
 
                             <!-- Meta Legend Card -->
-                            <td style="padding: 1rem; vertical-align: top; text-align: center;">
+                            <td wire:key="kpi-meta-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top; text-align: center;">
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
@@ -322,7 +322,7 @@
                                         }
                                     }
                                 @endphp
-                                <td style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center;">
+                                <td wire:key="kpi-week-cell-{{ $kpi->id }}-{{ $wNum }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center;">
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                         <input type="text"
                                             wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
@@ -355,7 +355,7 @@
                                     }
                                 }
                             @endphp
-                            <td style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                            <td wire:key="kpi-monthly-cell-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                     <span style="font-weight: 800; font-size: 0.95rem; color: #1e293b;">
                                         {{ $mVal !== '-' ? $mVal . '%' : '-' }}
@@ -365,7 +365,7 @@
                             </td>
 
                             <!-- Inicio de Semana Field -->
-                            <td style="padding: 1rem; vertical-align: top;">
+                            <td wire:key="kpi-startnote-cell-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top;">
                                 <textarea
                                     wire:model.defer="kpiStartNotes.{{ $kpi->id }}"
                                     placeholder="Inicio de semana..."
@@ -374,7 +374,7 @@
                             </td>
 
                             <!-- Cierre de Semana Field -->
-                            <td style="padding: 1rem; vertical-align: top;">
+                            <td wire:key="kpi-note-cell-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top;">
                                 <textarea
                                     wire:model.defer="kpiNotes.{{ $kpi->id }}"
                                     placeholder="Cierre de semana..."
