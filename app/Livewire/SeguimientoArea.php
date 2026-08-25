@@ -53,10 +53,15 @@ class SeguimientoArea extends Component
         $sin_actualizar = collect();
 
         if (!$now->isWeekend() && $now->hour >= 16) {
-            $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
-                ->whereDoesntHave('avancesDiarios', function ($q) {
+            $areasConAvanceHoy = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereHas('avancesDiarios', function ($q) {
                     $q->whereDate('fecha', now()->format('Y-m-d'));
                 })
+                ->pluck('area')
+                ->toArray();
+
+            $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereNotIn('area', $areasConAvanceHoy)
                 ->when($this->selectedArea, function ($q) {
                     $q->where('area', $this->selectedArea);
                 })

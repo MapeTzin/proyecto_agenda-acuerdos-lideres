@@ -40,21 +40,42 @@ class Dashboard extends Component
             ->take(5)
             ->get();
 
-        // Check for missing daily updates (Yesterday/Last Working Day) - ALWAYS VISIBLE ONLY ON DASHBOARD
-        $lastWorkingDay = now()->subDay();
-        while ($lastWorkingDay->isWeekend()) {
-            $lastWorkingDay->subDay();
+        // Check for missing daily updates (Yesterday)
+        // If yesterday was a weekend day (Saturday or Sunday), do not show alert for "ayer"
+        $yesterday = now()->subDay();
+        $sin_actualizar = collect();
+
+        if (!$yesterday->isWeekend()) {
+            $areasConAvanceAyer = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereHas('avancesDiarios', function ($q) use ($yesterday) {
+                    $q->whereDate('fecha', $yesterday->format('Y-m-d'));
+                })
+                ->pluck('area')
+                ->toArray();
+
+            $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereNotIn('area', $areasConAvanceAyer)
+                ->select('area', DB::raw('count(*) as pendientes'))
+                ->groupBy('area')
+                ->get();
         }
 
-        $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
-            ->whereDoesntHave('avancesDiarios', function ($q) use ($lastWorkingDay) {
-                $q->whereDate('fecha', $lastWorkingDay->format('Y-m-d'));
-            })
-            ->select('area', DB::raw('count(*) as pendientes'))
-            ->groupBy('area')
-            ->get();
+        // Calculate compliance by area
+        $lastWorkingDay = now();
+        if ($lastWorkingDay->isWeekend()) {
+            $lastWorkingDay = now()->subDay();
+            while ($lastWorkingDay->isWeekend()) {
+                $lastWorkingDay->subDay();
+            }
+        } else {
+            if (now()->hour < 16) {
+                $prev = now()->subDay();
+                if (!$prev->isWeekend()) {
+                    $lastWorkingDay = $prev;
+                }
+            }
+        }
 
-        // Calculate compliance by area (Based on last working day for constant visibility)
         $areas_list = collect([
             'ALMACEN',
             'VENTAS',

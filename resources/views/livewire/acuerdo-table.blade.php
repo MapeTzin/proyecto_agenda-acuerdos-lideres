@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.600s>
     <style>
         .table-container th {
             font-weight: 800 !important; 

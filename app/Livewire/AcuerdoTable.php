@@ -108,10 +108,15 @@ class AcuerdoTable extends Component
         $sin_actualizar = collect();
 
         if (!$now->isWeekend() && $now->hour >= 16) {
-            $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
-                ->whereDoesntHave('avancesDiarios', function ($q) {
+            $areasConAvanceHoy = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereHas('avancesDiarios', function ($q) {
                     $q->whereDate('fecha', now()->format('Y-m-d'));
                 })
+                ->pluck('area')
+                ->toArray();
+
+            $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
+                ->whereNotIn('area', $areasConAvanceHoy)
                 ->when(!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com' && auth()->user()->email !== 'gerencia_serv_gobierno@lesli.com.mx', function ($q) {
                     $q->where(function($query) {
                         $query->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(area)'), array_map('strtolower', auth()->user()->areas))

@@ -25,7 +25,67 @@ class AcuerdoController extends Controller
      */
     public function create()
     {
-        return view('acuerdos.create');
+        $kpisByArea = $this->getKpisGroupedByArea();
+        return view('acuerdos.create', compact('kpisByArea'));
+    }
+
+    private function getKpisGroupedByArea()
+    {
+        try {
+            $db = \Illuminate\Support\Facades\DB::connection('sistema_tickets');
+            $kpis = $db->table('kpis')->get(['id', 'name', 'category']);
+        } catch (\Exception $e) {
+            $kpis = collect();
+        }
+
+        $areas = \App\Models\Area::pluck('name')->toArray();
+        $result = [];
+
+        foreach ($areas as $area) {
+            $areaUpper = strtoupper($area);
+            $matched = $kpis->filter(function($kpi) use ($areaUpper) {
+                $cat = strtoupper($kpi->category ?? '');
+                if ($cat === $areaUpper) return true;
+                if (str_contains($areaUpper, 'CONTABILIDAD') || str_contains($areaUpper, 'CXC') || str_contains($areaUpper, 'COBRAR')) {
+                    if ($cat === 'CONTABILIDAD' || $cat === 'CUENTAS POR COBRAR') return true;
+                }
+                if (str_contains($areaUpper, 'SISTEMAS') || str_contains($areaUpper, 'TI')) {
+                    if ($cat === 'SISTEMAS Y TI' || $cat === 'SISTEMAS' || $cat === 'TI') return true;
+                }
+                if (str_contains($areaUpper, 'CAPITAL') || str_contains($areaUpper, 'HUMANO') || str_contains($areaUpper, 'RECURSOS')) {
+                    if ($cat === 'CAPITAL HUMANO') return true;
+                }
+                if (str_contains($areaUpper, 'STAFF')) {
+                    if ($cat === 'JEFATURA DE STAFF') return true;
+                }
+                if (str_contains($areaUpper, 'CALIDAD')) {
+                    if ($cat === 'ASEGURAMIENTO DE CALIDAD') return true;
+                }
+                if (str_contains($areaUpper, 'ADQUISICION')) {
+                    if ($cat === 'ADQUISICIONES') return true;
+                }
+                if (str_contains($areaUpper, 'VENTAS')) {
+                    if ($cat === 'VENTAS') return true;
+                }
+                if (str_contains($areaUpper, 'COMERCIAL')) {
+                    if ($cat === 'COMERCIAL') return true;
+                }
+                if (str_contains($areaUpper, 'CULTURA')) {
+                    if ($cat === 'CULTURA ORGANIZACIONAL') return true;
+                }
+                if (str_contains($areaUpper, 'ALMACEN') || str_contains($areaUpper, 'EMBARQUE')) {
+                    if ($cat === 'ALMACEN') return true;
+                }
+                if (str_contains($areaUpper, 'ASIS') || str_contains($areaUpper, 'ADM')) {
+                    if ($cat === 'ASIS ADM') return true;
+                }
+                return false;
+            })->pluck('name')->unique()->values()->toArray();
+
+            $result[$area] = $matched;
+        }
+
+        return $result;
     }
 
     /**
@@ -78,7 +138,8 @@ class AcuerdoController extends Controller
     public function edit(Acuerdo $acuerdo)
     {
         $this->authorize('update', $acuerdo);
-        return view('acuerdos.edit', compact('acuerdo'));
+        $kpisByArea = $this->getKpisGroupedByArea();
+        return view('acuerdos.edit', compact('acuerdo', 'kpisByArea'));
     }
 
     public function update(Request $request, Acuerdo $acuerdo)

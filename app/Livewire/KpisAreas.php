@@ -123,7 +123,12 @@ class KpisAreas extends Component
 
     public function getNormalizedUserArea(): string
     {
-        $userArea = strtoupper(auth()->user()->area ?? 'CONTABILIDAD');
+        $user = auth()->user();
+        if ($user && $user->email === 'l.diaz@mapetzin.com') {
+            return 'CUENTAS POR COBRAR';
+        }
+
+        $userArea = strtoupper($user->area ?? 'CONTABILIDAD');
 
         if (str_contains($userArea, 'CONTABILIDAD')) return 'CONTABILIDAD';
         if (str_contains($userArea, 'CXC') || str_contains($userArea, 'COBRAR')) return 'CUENTAS POR COBRAR';
@@ -247,7 +252,7 @@ class KpisAreas extends Component
                 }
             }
 
-            // Also load notes and monthly value from the monthly record (semana is null)
+            // Load notes and monthly value from the monthly record (semana is null)
             $monthlyRes = $results->get(null);
             if (!$monthlyRes) {
                 $monthlyRes = $db->table('kpi_results')
@@ -258,12 +263,27 @@ class KpisAreas extends Component
                     ->first();
             }
 
-            $monthlyVal = $monthlyRes ? $monthlyRes->value : -1;
-            if ($monthlyVal === null || $monthlyVal == -1.00) {
-                $monthlyVal = -1;
+            // Calculate monthly average from weekly values if weekly records exist
+            $sumWeeklyVal = 0;
+            $countWeeklyVal = 0;
+            for ($w = 1; $w <= $totalWeeks; $w++) {
+                $wVal = $this->kpiValues[$kpi->id][$w]['val'] ?? '-';
+                if ($wVal !== '-' && $wVal !== '' && is_numeric($wVal) && (float)$wVal >= 0) {
+                    $sumWeeklyVal += (float)$wVal;
+                    $countWeeklyVal++;
+                }
             }
 
-            $this->kpiMonthlyValues[$kpi->id] = $monthlyVal == -1 ? '-' : (float)$monthlyVal;
+            if ($countWeeklyVal > 0) {
+                $this->kpiMonthlyValues[$kpi->id] = round($sumWeeklyVal / $countWeeklyVal, 1);
+            } else {
+                $monthlyVal = $monthlyRes ? $monthlyRes->value : -1;
+                if ($monthlyVal === null || $monthlyVal == -1.00) {
+                    $monthlyVal = -1;
+                }
+
+                $this->kpiMonthlyValues[$kpi->id] = $monthlyVal == -1 ? '-' : (float)$monthlyVal;
+            }
 
             if ($monthlyRes) {
                 if (!empty($monthlyRes->notes)) {
@@ -292,6 +312,7 @@ class KpisAreas extends Component
             $note = $this->kpiNotes[$kpiId] ?? null;
             $startNote = $this->kpiStartNotes[$kpiId] ?? null;
             $sumVal = 0;
+            $countVal = 0;
             $hasAnyVal = false;
 
             for ($w = 1; $w <= $totalWeeks; $w++) {
@@ -303,6 +324,7 @@ class KpisAreas extends Component
                 } else {
                     $numericVal = (float)$rawVal;
                     $sumVal += $numericVal;
+                    $countVal++;
                     $hasAnyVal = true;
                     $dateInput = $weeks[$w]['date'] ?? null;
                     if (empty($dateInput)) {
@@ -343,8 +365,8 @@ class KpisAreas extends Component
                 );
             }
 
-            // Save the monthly sum in the row with semana = null
-            $monthlyVal = $hasAnyVal ? $sumVal : -1;
+            // Save the monthly average in the row with semana = null
+            $monthlyVal = ($hasAnyVal && $countVal > 0) ? round($sumVal / $countVal, 1) : -1;
 
             $db->table('kpi_results')->updateOrInsert(
                 [

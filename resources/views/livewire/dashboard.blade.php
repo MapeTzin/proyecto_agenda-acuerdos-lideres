@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.600s>
     <div style="margin-bottom: 2rem;">
         <h2 style="margin: 0;">Dashboard General</h2>
         <p style="color: var(--secondary); margin-top: 0.25rem;">Estado global de todos los acuerdos operativa</p>

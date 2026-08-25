@@ -290,6 +290,11 @@
             });
             calendar.render();
 
+            // Auto-refresh calendar events every 10 minutes (600,000 ms)
+            setInterval(function () {
+                calendar.refetchEvents();
+            }, 600000);
+
             window.openModal = function (start = '', end = '') {
                 document.getElementById('eventModal').style.display = 'flex';
                 document.getElementById('modalTitle').innerText = 'Nuevo Evento';
@@ -493,13 +498,12 @@
                 if (!id) return;
 
                 Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: "Esta acción no se puede deshacer.",
+                    title: 'ESTAS SEGURO DE ELINAR ESTE EVENTO',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
                     cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Sí, eliminar',
+                    confirmButtonText: 'Confirmar',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {

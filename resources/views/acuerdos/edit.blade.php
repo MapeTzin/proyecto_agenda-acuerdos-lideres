@@ -27,13 +27,13 @@
                     <div class="form-group">
                         <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">ÁREA</label>
                         @if(count(auth()->user()->areas) > 1)
-                            <select name="area" style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                            <select name="area" id="area_field" onchange="updateKpisForArea(this.value)" style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
                                 @foreach(auth()->user()->areas as $area)
                                     <option value="{{ $area }}" {{ old('area', $acuerdo->area) == $area ? 'selected' : '' }}>{{ $area }}</option>
                                 @endforeach
                             </select>
                         @else
-                            <input type="text" value="{{ old('area', $acuerdo->area) }}" readonly
+                            <input type="text" id="area_field" value="{{ old('area', $acuerdo->area) }}" readonly
                                 style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background-color: #f8fafc;">
                             <input type="hidden" name="area" value="{{ old('area', $acuerdo->area) }}">
                         @endif
@@ -87,8 +87,14 @@
                     {{-- Row 4-6: KPI, Acuerdo, Descripcion --}}
                     <div class="form-group" style="grid-column: span 2;">
                         <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">NOMBRE DE KPI Y METRICA ALCANZADA</label>
-                        <input type="text" name="actividad" value="{{ old('actividad', $acuerdo->actividad) }}" required
-                            style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                        <div id="kpi_container">
+                            <select id="kpi_select" name="actividad" required onchange="handleKpiChange(this.value)"
+                                style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background-color: #ffffff;">
+                                <option value="">-- Seleccionar KPI --</option>
+                            </select>
+                            <input type="text" id="kpi_custom_input" placeholder="Escriba el nombre del KPI..."
+                                style="display: none; width: 100%; margin-top: 0.5rem; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                        </div>
                     </div>
 
                     <div class="form-group" style="grid-column: span 2;">
@@ -398,4 +404,79 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const kpisByArea = @json($kpisByArea ?? []);
+        const initialOldActividad = @json(old('actividad', $acuerdo->actividad));
+
+        function updateKpisForArea(areaName) {
+            const select = document.getElementById('kpi_select');
+            const customInput = document.getElementById('kpi_custom_input');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Seleccionar KPI --</option>';
+
+            const kpis = kpisByArea[areaName] || [];
+            let isMatched = false;
+
+            kpis.forEach(kpi => {
+                const opt = document.createElement('option');
+                opt.value = kpi;
+                opt.textContent = kpi;
+                if (initialOldActividad && initialOldActividad === kpi) {
+                    opt.selected = true;
+                    isMatched = true;
+                }
+                select.appendChild(opt);
+            });
+
+            const otherOpt = document.createElement('option');
+            otherOpt.value = '__custom__';
+            otherOpt.textContent = 'Otro / Ingresar manualmente...';
+            select.appendChild(otherOpt);
+
+            if (initialOldActividad && !isMatched) {
+                otherOpt.selected = true;
+                if (customInput) {
+                    customInput.style.display = 'block';
+                    customInput.value = initialOldActividad;
+                    customInput.name = 'actividad';
+                    select.name = '';
+                }
+            } else {
+                if (customInput) {
+                    customInput.style.display = 'none';
+                    customInput.name = '';
+                    select.name = 'actividad';
+                }
+            }
+        }
+
+        function handleKpiChange(val) {
+            const select = document.getElementById('kpi_select');
+            const customInput = document.getElementById('kpi_custom_input');
+            if (val === '__custom__') {
+                if (customInput) {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                    customInput.name = 'actividad';
+                    select.name = '';
+                    customInput.focus();
+                }
+            } else {
+                if (customInput) {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                    customInput.name = '';
+                    select.name = 'actividad';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const areaField = document.getElementById('area_field');
+            const initialArea = areaField ? (areaField.value || areaField.getAttribute('value')) : '';
+            updateKpisForArea(initialArea);
+        });
+    </script>
 @endsection

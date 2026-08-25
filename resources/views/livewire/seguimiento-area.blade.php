@@ -1,4 +1,4 @@
-<div style="max-width: 1200px; margin: 0 auto; padding-bottom: 5rem;">
+<div wire:poll.600s style="max-width: 1200px; margin: 0 auto; padding-bottom: 5rem;">
     <!-- Pyramid Peak: Main Title -->
     <div style="text-align: center; margin-bottom: 3.5rem; animation: fadeInDown 0.8s ease-out;">
         <h1

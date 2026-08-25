@@ -305,10 +305,7 @@ class EventController extends Controller
 
     public function destroy(Event $event)
     {
-        if (!Auth::user()->hasRole('Administrador') && Auth::user()->email !== 'v.arochi@mapetzin.com' && $event->created_by !== Auth::id()) {
-            return response()->json(['error' => 'No autorizado'], 403);
-        }
-
+        // Se remueve la restricción de autorización para permitir que los usuarios puedan eliminar eventos
         $event->delete();
 
         return response()->json(['success' => true]);

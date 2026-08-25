@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Agenda de Acuerdos')</title>
+    <script>
+        // Check localStorage to apply collapsed state before rendering body
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.documentElement.classList.add('sidebar-collapsed-init');
+        }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -44,6 +50,7 @@
             position: fixed;
             height: 100vh;
             z-index: 100;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-brand {
@@ -89,6 +96,71 @@
             margin-left: 260px;
             padding: 2.5rem 3.5rem;
             max-width: calc(100% - 260px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Collapsed Sidebar Styles */
+        html.sidebar-collapsed-init .sidebar,
+        body.sidebar-collapsed .sidebar {
+            width: 70px;
+            padding: 2rem 0.5rem;
+        }
+
+        html.sidebar-collapsed-init .main-content,
+        body.sidebar-collapsed .main-content {
+            margin-left: 70px;
+            max-width: calc(100% - 70px);
+        }
+
+        html.sidebar-collapsed-init .sidebar-brand-text,
+        body.sidebar-collapsed .sidebar-brand-text {
+            display: none !important;
+        }
+
+        html.sidebar-collapsed-init .nav-item span,
+        body.sidebar-collapsed .nav-item span {
+            display: none !important;
+        }
+
+        html.sidebar-collapsed-init .nav-item,
+        body.sidebar-collapsed .nav-item {
+            justify-content: center;
+            padding: 0.75rem;
+            gap: 0;
+        }
+
+        html.sidebar-collapsed-init .sidebar-submenu,
+        body.sidebar-collapsed .sidebar-submenu {
+            display: none !important;
+        }
+
+        html.sidebar-collapsed-init .sidebar-toggle-btn i,
+        body.sidebar-collapsed .sidebar-toggle-btn i {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-toggle-btn {
+            position: absolute;
+            top: 1.75rem;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border: 2px solid var(--dark);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 110;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: all 0.3s;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
         }
 
         .header {
@@ -336,6 +408,11 @@
 
 <body>
     <div class="sidebar">
+        <!-- Floating Collapse Toggle Button -->
+        <button id="sidebarToggle" class="sidebar-toggle-btn" title="Ocultar/Mostrar Panel">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
         <div class="sidebar-brand" style="margin-bottom: 3rem; padding-top: 1rem;">
             <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <div
@@ -346,7 +423,7 @@
                     <span
                         style="position: absolute; top: -10px; right: -10px; font-size: 0.6rem; border: 1px solid #fff; border-radius: 50%; width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;">R</span>
                 </div>
-                <div
+                <div class="sidebar-brand-text"
                     style="margin-top: 10px; font-size: 0.9rem; font-weight: 600; color: #fff; letter-spacing: 1px; text-align: center;">
                     MAPE+TZIN<br>
                     <span style="font-size: 0.7rem; opacity: 0.8; font-weight: 400;">GOBIERNO</span>
@@ -375,7 +452,7 @@
             <span>Mi Listado de Acuerdos</span>
         </a>
         @if(count(auth()->user()->areas) > 1)
-            <div style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
                 @foreach(auth()->user()->areas as $area)
                     <a href="{{ route('acuerdos.index', ['area' => $area]) }}"
                         class="nav-item {{ (request()->routeIs('acuerdos.index') && request()->get('area') === $area) ? 'active' : '' }}"
@@ -392,7 +469,7 @@
             <span>Histórico de Acuerdos</span>
         </a>
         @if(count(auth()->user()->areas) > 1)
-            <div style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
                 @foreach(auth()->user()->areas as $area)
                     <a href="{{ route('acuerdos.historico', ['area' => $area]) }}"
                         class="nav-item {{ (request()->routeIs('acuerdos.historico') && request()->get('area') === $area) ? 'active' : '' }}"
@@ -457,6 +534,23 @@
     </div>
 
     @livewireScripts
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Apply init class to body once DOM is ready if it was set
+            if (document.documentElement.classList.contains('sidebar-collapsed-init')) {
+                document.body.classList.add('sidebar-collapsed');
+                document.documentElement.classList.remove('sidebar-collapsed-init');
+            }
+
+            const toggleBtn = document.getElementById('sidebarToggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function () {
+                    const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>
