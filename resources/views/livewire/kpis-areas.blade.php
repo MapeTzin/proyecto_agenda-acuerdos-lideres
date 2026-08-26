@@ -290,15 +290,15 @@
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                        <span style="color: #334155;">≥ 25%</span>
+                                        <span style="color: #334155;">&ge; 95%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-                                        <span style="color: #334155;">20% - 24%</span>
+                                        <span style="color: #334155;">80% - 94%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
-                                        <span style="color: #334155;">&lt; 20%</span>
+                                        <span style="color: #334155;">&lt; 80%</span>
                                     </div>
                                 </div>
                             </td>
@@ -313,9 +313,9 @@
                                     $dotColor = '#94a3b8'; // default grey
                                     if ($val !== '-' && $val !== '' && is_numeric($val)) {
                                         $num = (float)$val;
-                                        if ($num >= 25.00) {
+                                        if ($num >= 95.00) {
                                             $dotColor = '#10b981'; // green
-                                        } elseif ($num >= 20.00) {
+                                        } elseif ($num >= 80.00) {
                                             $dotColor = '#f59e0b'; // yellow
                                         } else {
                                             $dotColor = '#ef4444'; // red
@@ -327,7 +327,7 @@
                                         <input type="text"
                                             wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
                                             value="{{ $val }}"
-                                            data-target="25"
+                                            data-target="95"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
                                         
@@ -346,9 +346,9 @@
                                 $mDotColor = '#94a3b8'; // default grey
                                 if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal)) {
                                     $num = (float)$mVal;
-                                    if ($num >= $kpi->target) {
+                                    if ($num >= 95.00) {
                                         $mDotColor = '#10b981'; // green
-                                    } elseif ($num >= ($kpi->target - 5)) {
+                                    } elseif ($num >= 80.00) {
                                         $mDotColor = '#f59e0b'; // yellow
                                     } else {
                                         $mDotColor = '#ef4444'; // red
@@ -414,10 +414,10 @@
                         $badgeColor = '#64748b';
 
                         if ($avg !== '-' && is_numeric($avg)) {
-                            if ($avg >= 25) {
+                            if ($avg >= 95) {
                                 $badgeBg = '#d1fae5';
                                 $badgeColor = '#065f46';
-                            } elseif ($avg >= 20) {
+                            } elseif ($avg >= 80) {
                                 $badgeBg = '#fef3c7';
                                 $badgeColor = '#92400e';
                             } else {
@@ -501,16 +501,14 @@
             if (!container) return;
             const dot = container.querySelector('.kpi-dot-indicator');
             if (!dot) return;
-            
-            const target = parseFloat(el.getAttribute('data-target') || 95);
 
             if (val === '' || val === '-' || isNaN(val) || parseFloat(val) < 0) {
                 dot.style.backgroundColor = '#94a3b8'; // Grey
             } else {
                 const num = parseFloat(val);
-                if (num >= target) {
+                if (num >= 95) {
                     dot.style.backgroundColor = '#10b981'; // Green
-                } else if (num >= (target - 5)) {
+                } else if (num >= 80) {
                     dot.style.backgroundColor = '#f59e0b'; // Yellow
                 } else {
                     dot.style.backgroundColor = '#ef4444'; // Red

@@ -127,13 +127,13 @@ class Acuerdo extends Model
                 'text_color' => '#065f46',
                 'label' => 'En Meta (≥ 95%)'
             ];
-        } elseif ($num >= 90) {
+        } elseif ($num >= 80) {
             return [
                 'semaforo' => 'AMARILLO',
                 'color' => '#f59e0b',
                 'bg' => '#fef3c7',
                 'text_color' => '#92400e',
-                'label' => 'Prevención (90% - 94%)'
+                'label' => 'Prevención (80% - 94%)'
             ];
         } else {
             return [
@@ -141,7 +141,7 @@ class Acuerdo extends Model
                 'color' => '#ef4444',
                 'bg' => '#fee2e2',
                 'text_color' => '#991b1b',
-                'label' => 'Atención Requerida (< 90%)'
+                'label' => 'Atención (< 80%)'
             ];
         }
     }

@@ -356,7 +356,7 @@ class KpisAreas extends Component
                     ],
                     [
                         'value' => $numericVal,
-                        'target_value' => 25.00,
+                        'target_value' => 95.00,
                         'period_date' => $dbDate,
                         'notes' => null,
                         'inicio_semana' => null,
@@ -462,7 +462,7 @@ class KpisAreas extends Component
                     'month' => $this->selectedMonth,
                     'semana' => $w,
                     'value' => -1,
-                    'target_value' => 25.00,
+                    'target_value' => 95.00,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -581,14 +581,14 @@ class KpisAreas extends Component
                 $color = '#10b981';
                 $badgeBg = '#d1fae5';
                 $areasEnMetaCount++;
-            } elseif ($pctJunio >= 90) {
+            } elseif ($pctJunio >= 80) {
                 $semaforo = 'AMARILLO';
-                $label = 'Prevención (90% - 94%)';
+                $label = 'Prevención (80% - 94%)';
                 $color = '#d97706';
                 $badgeBg = '#fef3c7';
             } else {
                 $semaforo = 'ROJO';
-                $label = 'Atención Requerida (< 90%)';
+                $label = 'Atención Requerida (< 80%)';
                 $color = '#dc2626';
                 $badgeBg = '#fee2e2';
             }
@@ -608,10 +608,10 @@ class KpisAreas extends Component
                 if ($vM < 0) {
                     $dotColor = '#94a3b8';
                     $vStr = '-';
-                } elseif ($vM >= $kpiObj->target) {
+                } elseif ($vM >= 95) {
                     $dotColor = '#10b981';
                     $vStr = $vM . '%';
-                } elseif ($vM >= ($kpiObj->target - 5)) {
+                } elseif ($vM >= 80) {
                     $dotColor = '#f59e0b';
                     $vStr = $vM . '%';
                 } else {
@@ -641,10 +641,10 @@ class KpisAreas extends Component
                 if ($vJ < 0) {
                     $dotColor = '#94a3b8';
                     $vStr = '-';
-                } elseif ($vJ >= $kpiObj->target) {
+                } elseif ($vJ >= 95) {
                     $dotColor = '#10b981';
                     $vStr = $vJ . '%';
-                } elseif ($vJ >= ($kpiObj->target - 5)) {
+                } elseif ($vJ >= 80) {
                     $dotColor = '#f59e0b';
                     $vStr = $vJ . '%';
                 } else {

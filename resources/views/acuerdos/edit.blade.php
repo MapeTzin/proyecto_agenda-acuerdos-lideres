@@ -291,16 +291,16 @@
                                 bg = '#d1fae5';
                                 textColor = '#065f46';
                                 label = 'En Meta (≥ 95%)';
-                            } else if (num >= 90) {
+                            } else if (num >= 80) {
                                 color = '#f59e0b';
                                 bg = '#fef3c7';
                                 textColor = '#92400e';
-                                label = 'Prevención (90% - 94%)';
+                                label = 'Prevención (80% - 94%)';
                             } else {
                                 color = '#ef4444';
                                 bg = '#fee2e2';
                                 textColor = '#991b1b';
-                                label = 'Atención Requerida (< 90%)';
+                                label = 'Atención Requerida (< 80%)';
                             }
                         }
 

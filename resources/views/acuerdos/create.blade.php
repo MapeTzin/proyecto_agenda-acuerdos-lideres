@@ -126,7 +126,7 @@
                         </div>
                         <div>
                             <span id="create_badge" style="background: #fee2e2; color: #991b1b; padding: 0.35rem 0.85rem; border-radius: 9999px; font-weight: 800; font-size: 0.85rem; display: inline-block; transition: all 0.3s;">
-                                Atención Requerida (< 90%)
+                                Atención Requerida (< 80%)
                             </span>
                             <span style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem;">
                                 Cálculo de Semáforo: ≥ 95% (Verde) | 90% - 94% (Amarillo) | &lt; 90% (Rojo)
@@ -147,7 +147,7 @@
                     let color = '#ef4444';
                     let bg = '#fee2e2';
                     let textColor = '#991b1b';
-                    let label = 'Atención Requerida (< 90%)';
+                    let label = 'Atención Requerida (< 80%)';
 
                     if (valStr !== '' && !isNaN(valStr) && parseFloat(valStr) >= 0) {
                         const num = parseFloat(valStr);
@@ -156,11 +156,11 @@
                             bg = '#d1fae5';
                             textColor = '#065f46';
                             label = 'En Meta (≥ 95%)';
-                        } else if (num >= 90) {
+                        } else if (num >= 80) {
                             color = '#f59e0b';
                             bg = '#fef3c7';
                             textColor = '#92400e';
-                            label = 'Prevención (90% - 94%)';
+                            label = 'Prevención (80% - 94%)';
                         }
                     }
 
