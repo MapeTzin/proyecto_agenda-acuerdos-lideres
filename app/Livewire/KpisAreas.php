@@ -536,7 +536,11 @@ class KpisAreas extends Component
         $totalMayoCumplimientoSum = 0;
         $totalJunioCumplimientoSum = 0;
         $areasEnMetaCount = 0;
+        $areasEnPrevencionCount = 0;
+        $areasEnAtencionCount = 0;
         $areasCount = count($officialAreas);
+
+        $totalWeeks = count($this->weeksList);
 
         foreach ($officialAreas as $areaItem) {
             $kpisForArea = $db->table('kpis')
@@ -553,7 +557,7 @@ class KpisAreas extends Component
 
             $kpiIds = $kpisForArea->pluck('id');
 
-            // Mayo Average (Month 5)
+            // Mayo Average (Previous Month)
             $avgMayo = $totalKpis > 0 ? $db->table('kpi_results')
                 ->whereIn('kpi_id', $kpiIds)
                 ->where('year', $prevMonthYear)
@@ -564,7 +568,7 @@ class KpisAreas extends Component
             $pctMayo = $avgMayo !== null ? round($avgMayo, 1) : 0;
             $totalMayoCumplimientoSum += $pctMayo;
 
-            // Junio Average (Month 6)
+            // Junio Average (Selected Month)
             $avgJunio = $totalKpis > 0 ? $db->table('kpi_results')
                 ->whereIn('kpi_id', $kpiIds)
                 ->where('year', $this->selectedYear)
@@ -586,14 +590,16 @@ class KpisAreas extends Component
                 $label = 'Prevención (80% - 94%)';
                 $color = '#d97706';
                 $badgeBg = '#fef3c7';
+                $areasEnPrevencionCount++;
             } else {
                 $semaforo = 'ROJO';
                 $label = 'Atención Requerida (< 80%)';
                 $color = '#dc2626';
                 $badgeBg = '#fee2e2';
+                $areasEnAtencionCount++;
             }
 
-            // Build individual KPI dots for MAYO (Month 5)
+            // Build individual KPI dots for MAYO (Previous Month)
             $kpiDotsMayo = [];
             foreach ($kpisForArea as $kpiObj) {
                 $resM = $db->table('kpi_results')
@@ -608,7 +614,7 @@ class KpisAreas extends Component
                 if ($vM < 0) {
                     $dotColor = '#94a3b8';
                     $vStr = '-';
-                } elseif ($vM >= 95) {
+                } elseif ($vM >= ($kpiObj->target ?? 95)) {
                     $dotColor = '#10b981';
                     $vStr = $vM . '%';
                 } elseif ($vM >= 80) {
@@ -626,36 +632,133 @@ class KpisAreas extends Component
                 ];
             }
 
-            // Build individual KPI dots for JUNIO (Month 6)
+            // Build detailed individual KPI dots for Selected Month
             $kpiDotsJunio = [];
+            $kpisEnMeta = 0;
+            $kpisEnPrevencion = 0;
+            $kpisEnAtencion = 0;
+            $kpisSinRegistro = 0;
+            $areaKpisSum = 0;
+            $areaKpisCountWithVal = 0;
+
             foreach ($kpisForArea as $kpiObj) {
-                $resJ = $db->table('kpi_results')
+                $targetVal = $kpiObj->target ? (float)$kpiObj->target : 95.0;
+
+                // Query all results for this KPI in current month (both weekly and monthly summary)
+                $allKpiResults = $db->table('kpi_results')
                     ->where('kpi_id', $kpiObj->id)
                     ->where('year', $this->selectedYear)
                     ->where('month', $latestMonthNum)
-                    ->whereNull('semana')
-                    ->first();
+                    ->get();
 
-                $vJ = ($resJ && $resJ->value !== null) ? (float)$resJ->value : -1;
+                $monthlyRes = $allKpiResults->whereNull('semana')->first();
+                $weeklyResults = $allKpiResults->whereNotNull('semana')->keyBy('semana');
 
+                $vJ = ($monthlyRes && $monthlyRes->value !== null) ? (float)$monthlyRes->value : -1;
+
+                // Build weekly breakdown
+                $weeksBreakdown = [];
+                $sumWeekly = 0;
+                $countWeekly = 0;
+                $weeksValuesList = [];
+
+                for ($w = 1; $w <= $totalWeeks; $w++) {
+                    $wRes = $weeklyResults->get($w);
+                    $wVal = ($wRes && $wRes->value !== null && $wRes->value != -1.00) ? (float)$wRes->value : null;
+                    $wDate = ($wRes && !empty($wRes->period_date)) ? \Carbon\Carbon::parse($wRes->period_date)->format('d/m/Y') : '';
+                    
+                    $wLabel = $this->weeksList[$w]['label'] ?? "Semana $w";
+                    $wRange = $this->weeksList[$w]['range'] ?? '';
+
+                    if ($wVal !== null && $wVal >= 0) {
+                        $sumWeekly += $wVal;
+                        $countWeekly++;
+                        $weeksValuesList[] = $wVal . '%';
+                        if ($wVal >= $targetVal) {
+                            $wColor = '#10b981';
+                        } elseif ($wVal >= 80.0) {
+                            $wColor = '#f59e0b';
+                        } else {
+                            $wColor = '#ef4444';
+                        }
+                    } else {
+                        $wColor = '#94a3b8';
+                    }
+
+                    $weeksBreakdown[] = [
+                        'semana' => $w,
+                        'label' => $wLabel,
+                        'range' => $wRange,
+                        'val' => $wVal !== null ? $wVal . '%' : '-',
+                        'numeric_val' => $wVal,
+                        'color' => $wColor,
+                        'date' => $wDate,
+                    ];
+                }
+
+                // If weekly records exist and monthly average differs, update status accordingly
                 if ($vJ < 0) {
                     $dotColor = '#94a3b8';
+                    $statusText = 'Sin Registro / Pendiente';
+                    $statusBadgeBg = '#f1f5f9';
+                    $statusBadgeColor = '#64748b';
                     $vStr = '-';
-                } elseif ($vJ >= 95) {
+                    $kpisSinRegistro++;
+                } elseif ($vJ >= $targetVal) {
                     $dotColor = '#10b981';
+                    $statusText = 'En Meta (≥ ' . number_format($targetVal, 0) . '%)';
+                    $statusBadgeBg = '#d1fae5';
+                    $statusBadgeColor = '#065f46';
                     $vStr = $vJ . '%';
-                } elseif ($vJ >= 80) {
+                    $kpisEnMeta++;
+                    $areaKpisSum += $vJ;
+                    $areaKpisCountWithVal++;
+                } elseif ($vJ >= 80.0) {
                     $dotColor = '#f59e0b';
+                    $statusText = 'Prevención (80% - 94%)';
+                    $statusBadgeBg = '#fef3c7';
+                    $statusBadgeColor = '#92400e';
                     $vStr = $vJ . '%';
+                    $kpisEnPrevencion++;
+                    $areaKpisSum += $vJ;
+                    $areaKpisCountWithVal++;
                 } else {
                     $dotColor = '#ef4444';
+                    $statusText = 'Atención Requerida (< 80%)';
+                    $statusBadgeBg = '#fee2e2';
+                    $statusBadgeColor = '#991b1b';
                     $vStr = $vJ . '%';
+                    $kpisEnAtencion++;
+                    $areaKpisSum += $vJ;
+                    $areaKpisCountWithVal++;
+                }
+
+                // Explanation text
+                if ($countWeekly > 0) {
+                    $avgCalc = round($sumWeekly / $countWeekly, 1);
+                    $calcExplanation = "Promedio de {$countWeekly} semana(s) registradas: (" . implode(' + ', $weeksValuesList) . ") ÷ {$countWeekly} = {$avgCalc}%";
+                } elseif ($vJ >= 0) {
+                    $calcExplanation = "Puntaje consolidado capturado directamente para el mes: {$vJ}%";
+                } else {
+                    $calcExplanation = "No se han capturado evaluaciones en las semanas de este periodo.";
                 }
 
                 $kpiDotsJunio[] = [
+                    'id' => $kpiObj->id,
                     'name' => $kpiObj->name,
+                    'description' => $kpiObj->description ?? '',
+                    'target' => $targetVal,
                     'val' => $vStr,
+                    'raw_val' => $vJ,
                     'color' => $dotColor,
+                    'status_text' => $statusText,
+                    'status_bg' => $statusBadgeBg,
+                    'status_color' => $statusBadgeColor,
+                    'weeks' => $weeksBreakdown,
+                    'weeks_count' => $countWeekly,
+                    'calc_explanation' => $calcExplanation,
+                    'cierre_notas' => $monthlyRes->notes ?? '',
+                    'inicio_notas' => $monthlyRes->inicio_semana ?? '',
                 ];
             }
 
@@ -694,6 +797,11 @@ class KpisAreas extends Component
                 'badgeBg' => $badgeBg,
                 'kpi_dots_mayo' => $kpiDotsMayo,
                 'kpi_dots_junio' => $kpiDotsJunio,
+                'kpis_en_meta_count' => $kpisEnMeta,
+                'kpis_en_prevencion_count' => $kpisEnPrevencion,
+                'kpis_en_atencion_count' => $kpisEnAtencion,
+                'kpis_sin_registro_count' => $kpisSinRegistro,
+                'area_kpis_count_with_val' => $areaKpisCountWithVal,
             ];
         }
 
@@ -715,19 +823,30 @@ class KpisAreas extends Component
                 ->orderBy('id', 'asc')
                 ->get();
 
-            for ($w = 1; $w <= 5; $w++) {
+            $totalWeeks = count($this->weeksList);
+            for ($w = 1; $w <= $totalWeeks; $w++) {
                 $sum = 0;
                 $count = 0;
+                $kpiListForWeek = [];
 
                 foreach ($kpis as $kpi) {
                     $wVal = $this->kpiValues[$kpi->id][$w]['val'] ?? '-';
                     if ($wVal !== '-' && $wVal !== '' && is_numeric($wVal) && (float)$wVal >= 0) {
                         $sum += (float)$wVal;
                         $count++;
+                        $kpiListForWeek[] = [
+                            'name' => $kpi->name,
+                            'val' => (float)$wVal . '%'
+                        ];
                     }
                 }
 
-                $weeklyAverages[$w] = $count > 0 ? round($sum / $count, 1) : '-';
+                $weeklyAverages[$w] = [
+                    'avg' => $count > 0 ? round($sum / $count, 1) : '-',
+                    'count' => $count,
+                    'total' => count($kpis),
+                    'kpis' => $kpiListForWeek
+                ];
             }
         }
 
@@ -740,6 +859,8 @@ class KpisAreas extends Component
             'cumplimientoJunioAvg' => $cumplimientoJunioAvg,
             'globalDiff' => $globalDiff,
             'areasEnMetaCount' => $areasEnMetaCount,
+            'areasEnPrevencionCount' => $areasEnPrevencionCount,
+            'areasEnAtencionCount' => $areasEnAtencionCount,
             'prevMonthName' => $prevMonthName,
             'latestMonthName' => $latestMonthName,
             'showModal' => $this->showModal,
