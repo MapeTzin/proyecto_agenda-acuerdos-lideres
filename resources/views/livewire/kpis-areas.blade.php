@@ -386,7 +386,7 @@
                                                             <i class="fas fa-folder" style="margin-right: 3px;"></i> {{ $item['area'] }}
                                                         </span>
                                                         <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">
-                                                            Meta: &ge; {{ number_format($dot['target'], 0) }}%
+                                                            Meta: &ge; 95%
                                                         </span>
                                                     </div>
 
@@ -640,7 +640,7 @@
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                        <span style="color: #334155;">&ge; {{ number_format($kpi->target ?? 95, 0) }}%</span>
+                                        <span style="color: #334155;">&ge; 95%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
@@ -663,7 +663,7 @@
                                     $dotColor = '#94a3b8'; // default grey
                                     if ($val !== '-' && $val !== '' && is_numeric($val)) {
                                         $num = (float)$val;
-                                        if ($num >= ($kpi->target ?? 95)) {
+                                        if ($num >= 95.00) {
                                             $dotColor = '#10b981'; // green
                                         } elseif ($num >= 80.00) {
                                             $dotColor = '#f59e0b'; // yellow
@@ -677,7 +677,7 @@
                                         <input type="text"
                                             wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
                                             value="{{ $val }}"
-                                            data-target="{{ $kpi->target ?? 95 }}"
+                                            data-target="95"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
                                         
@@ -700,9 +700,9 @@
 
                                 if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal)) {
                                     $num = (float)$mVal;
-                                    if ($num >= ($kpi->target ?? 95)) {
+                                    if ($num >= 95.00) {
                                         $mDotColor = '#10b981'; // green
-                                        $mStatusText = 'En Meta (≥ ' . number_format($kpi->target ?? 95, 0) . '%)';
+                                        $mStatusText = 'En Meta (≥ 95%)';
                                         $mStatusBg = '#d1fae5';
                                         $mStatusColor = '#065f46';
                                     } elseif ($num >= 80.00) {
@@ -736,7 +736,7 @@
                                                     Total Mensual
                                                 </span>
                                                 <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">
-                                                    Meta: &ge; {{ number_format($kpi->target ?? 95, 0) }}%
+                                                    Meta: &ge; 95%
                                                 </span>
                                             </div>
                                             <div style="font-weight: 800; color: #0f172a; font-size: 0.9rem; margin-bottom: 0.5rem;">

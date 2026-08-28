@@ -614,7 +614,7 @@ class KpisAreas extends Component
                 if ($vM < 0) {
                     $dotColor = '#94a3b8';
                     $vStr = '-';
-                } elseif ($vM >= ($kpiObj->target ?? 95)) {
+                } elseif ($vM >= 95.0) {
                     $dotColor = '#10b981';
                     $vStr = $vM . '%';
                 } elseif ($vM >= 80) {
@@ -642,7 +642,7 @@ class KpisAreas extends Component
             $areaKpisCountWithVal = 0;
 
             foreach ($kpisForArea as $kpiObj) {
-                $targetVal = $kpiObj->target ? (float)$kpiObj->target : 95.0;
+                $targetVal = 95.0;
 
                 // Query all results for this KPI in current month (both weekly and monthly summary)
                 $allKpiResults = $db->table('kpi_results')
