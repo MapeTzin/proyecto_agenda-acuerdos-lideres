@@ -195,14 +195,20 @@ class KpisAreas extends Component
             return;
         }
 
-        $db = DB::connection('sistema_tickets');
+        $db = DB::connection('areaskpi');
         
+        $area = $db->table('areas')->where('nombre', $this->selectedArea)->first();
+        if (!$area) {
+            $this->kpiValues = [];
+            $this->kpiNotes = [];
+            $this->kpiStartNotes = [];
+            $this->kpiMonthlyValues = [];
+            return;
+        }
+
         $kpis = $db->table('kpis')
-            ->where('is_active', 1)
-            ->where(function($q) {
-                $q->where('category', $this->selectedArea)
-                  ->orWhere('category', 'LIKE', '%' . $this->selectedArea . '%');
-            })
+            ->where('area_id', $area->id)
+            ->select('id', 'area_id', 'nombre as name', 'descripcion as description', 'meta as target', 'formula', 'tipo', 'periodicidad', 'is_inverse')
             ->orderBy('id', 'asc')
             ->get();
 
@@ -214,88 +220,29 @@ class KpisAreas extends Component
         $totalWeeks = count($this->weeksList);
 
         foreach ($kpis as $kpi) {
-            $results = $db->table('kpi_results')
+            $monthlyRes = $db->table('kpi_values')
                 ->where('kpi_id', $kpi->id)
-                ->where('year', $this->selectedYear)
-                ->where('month', $this->selectedMonth)
-                ->get()
-                ->keyBy('semana');
+                ->whereYear('fecha', $this->selectedYear)
+                ->whereMonth('fecha', $this->selectedMonth)
+                ->orderBy('fecha', 'desc')
+                ->first();
+
+            $val = ($monthlyRes && $monthlyRes->valor !== null) ? (float)$monthlyRes->valor : -1;
+            $note = $monthlyRes ? ($monthlyRes->notas ?? '') : '';
+            $dateStr = $monthlyRes ? \Carbon\Carbon::parse($monthlyRes->fecha)->format('d/m/Y') : '';
 
             $this->kpiValues[$kpi->id] = [];
             
-            $latestNote = '';
-            $latestStartNote = '';
             for ($w = 1; $w <= $totalWeeks; $w++) {
-                $res = $results->get($w);
-                $val = $res ? $res->value : -1;
-                if ($val === null || $val == -1.00) {
-                    $val = -1;
-                }
-                
-                $dateStr = '';
-                if ($res && $res->period_date) {
-                    $dateStr = \Carbon\Carbon::parse($res->period_date)->format('d/m/Y');
-                }
-
                 $this->kpiValues[$kpi->id][$w] = [
                     'val' => $val == -1 ? '-' : (float)$val,
                     'date' => $dateStr,
                 ];
-
-                if ($res) {
-                    if (!empty($res->notes)) {
-                        $latestNote = $res->notes;
-                    }
-                    if (!empty($res->inicio_semana)) {
-                        $latestStartNote = $res->inicio_semana;
-                    }
-                }
             }
 
-            // Load notes and monthly value from the monthly record (semana is null)
-            $monthlyRes = $results->get(null);
-            if (!$monthlyRes) {
-                $monthlyRes = $db->table('kpi_results')
-                    ->where('kpi_id', $kpi->id)
-                    ->where('year', $this->selectedYear)
-                    ->where('month', $this->selectedMonth)
-                    ->whereNull('semana')
-                    ->first();
-            }
-
-            // Calculate monthly average from weekly values if weekly records exist
-            $sumWeeklyVal = 0;
-            $countWeeklyVal = 0;
-            for ($w = 1; $w <= $totalWeeks; $w++) {
-                $wVal = $this->kpiValues[$kpi->id][$w]['val'] ?? '-';
-                if ($wVal !== '-' && $wVal !== '' && is_numeric($wVal) && (float)$wVal >= 0) {
-                    $sumWeeklyVal += (float)$wVal;
-                    $countWeeklyVal++;
-                }
-            }
-
-            if ($countWeeklyVal > 0) {
-                $this->kpiMonthlyValues[$kpi->id] = round($sumWeeklyVal / $countWeeklyVal, 1);
-            } else {
-                $monthlyVal = $monthlyRes ? $monthlyRes->value : -1;
-                if ($monthlyVal === null || $monthlyVal == -1.00) {
-                    $monthlyVal = -1;
-                }
-
-                $this->kpiMonthlyValues[$kpi->id] = $monthlyVal == -1 ? '-' : (float)$monthlyVal;
-            }
-
-            if ($monthlyRes) {
-                if (!empty($monthlyRes->notes)) {
-                    $latestNote = $monthlyRes->notes;
-                }
-                if (!empty($monthlyRes->inicio_semana)) {
-                    $latestStartNote = $monthlyRes->inicio_semana;
-                }
-            }
-
-            $this->kpiNotes[$kpi->id] = $latestNote;
-            $this->kpiStartNotes[$kpi->id] = $latestStartNote;
+            $this->kpiMonthlyValues[$kpi->id] = $val == -1 ? '-' : (float)$val;
+            $this->kpiNotes[$kpi->id] = $note;
+            $this->kpiStartNotes[$kpi->id] = '';
         }
     }
 
@@ -305,85 +252,70 @@ class KpisAreas extends Component
             return;
         }
 
-        $db = DB::connection('sistema_tickets');
+        $db = DB::connection('areaskpi');
         $totalWeeks = count($this->weeksList);
 
         foreach ($this->kpiValues as $kpiId => $weeks) {
             $note = $this->kpiNotes[$kpiId] ?? null;
-            $startNote = $this->kpiStartNotes[$kpiId] ?? null;
             $sumVal = 0;
             $countVal = 0;
             $hasAnyVal = false;
+            $lastValidDate = null;
 
             for ($w = 1; $w <= $totalWeeks; $w++) {
                 $rawVal = $weeks[$w]['val'] ?? '-';
                 
-                if ($rawVal === '-' || $rawVal === '' || $rawVal === null) {
-                    $numericVal = -1;
-                    $dbDate = null;
-                } else {
+                if ($rawVal !== '-' && $rawVal !== '' && $rawVal !== null && is_numeric($rawVal) && (float)$rawVal >= 0) {
                     $numericVal = (float)$rawVal;
                     $sumVal += $numericVal;
                     $countVal++;
                     $hasAnyVal = true;
+                    
                     $dateInput = $weeks[$w]['date'] ?? null;
-                    if (empty($dateInput)) {
-                        $dbDate = now()->format('Y-m-d');
-                    } else {
+                    if (!empty($dateInput)) {
                         try {
                             if (str_contains($dateInput, '/')) {
                                 $parts = explode('/', $dateInput);
                                 if (count($parts) === 3) {
-                                    $dbDate = "{$parts[2]}-{$parts[1]}-{$parts[0]}";
-                                } else {
-                                    $dbDate = now()->format('Y-m-d');
+                                    $lastValidDate = "{$parts[2]}-{$parts[1]}-{$parts[0]}";
                                 }
                             } else {
-                                $dbDate = $dateInput;
+                                $lastValidDate = $dateInput;
                             }
-                        } catch (\Exception $e) {
-                            $dbDate = now()->format('Y-m-d');
-                        }
+                        } catch (\Exception $e) {}
                     }
                 }
-
-                $db->table('kpi_results')->updateOrInsert(
-                    [
-                        'kpi_id' => $kpiId,
-                        'year' => $this->selectedYear,
-                        'month' => $this->selectedMonth,
-                        'semana' => $w
-                    ],
-                    [
-                        'value' => $numericVal,
-                        'target_value' => 95.00,
-                        'period_date' => $dbDate,
-                        'notes' => null,
-                        'inicio_semana' => null,
-                        'updated_at' => now(),
-                    ]
-                );
             }
 
-            // Save the monthly average in the row with semana = null
-            $monthlyVal = ($hasAnyVal && $countVal > 0) ? round($sumVal / $countVal, 1) : -1;
+            $monthlyVal = ($hasAnyVal && $countVal > 0) ? round($sumVal / $countVal, 1) : null;
+            $saveDate = $lastValidDate ?? sprintf('%04d-%02d-01', $this->selectedYear, $this->selectedMonth);
 
-            $db->table('kpi_results')->updateOrInsert(
-                [
-                    'kpi_id' => $kpiId,
-                    'year' => $this->selectedYear,
-                    'month' => $this->selectedMonth,
-                    'semana' => null
-                ],
-                [
-                    'value' => $monthlyVal,
-                    'target_value' => 95.00,
-                    'period_date' => now()->format('Y-m-d'),
-                    'notes' => $note,
-                    'inicio_semana' => $startNote,
-                    'updated_at' => now(),
-                ]
-            );
+            $existing = $db->table('kpi_values')
+                ->where('kpi_id', $kpiId)
+                ->whereYear('fecha', $this->selectedYear)
+                ->whereMonth('fecha', $this->selectedMonth)
+                ->first();
+
+            if ($existing) {
+                $db->table('kpi_values')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'valor' => $monthlyVal,
+                        'notas' => $note,
+                        'updated_at' => now(),
+                    ]);
+            } else {
+                if ($monthlyVal !== null || !empty($note)) {
+                    $db->table('kpi_values')->insert([
+                        'kpi_id' => $kpiId,
+                        'valor' => $monthlyVal ?? 0.00,
+                        'fecha' => $saveDate,
+                        'notas' => $note,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
         }
 
         session()->flash('success', '¡Porcentajes y avances de KPI´s guardados exitosamente!');
@@ -401,13 +333,13 @@ class KpisAreas extends Component
 
     public function editKpi($kpiId)
     {
-        $db = DB::connection('sistema_tickets');
+        $db = DB::connection('areaskpi');
         $kpi = $db->table('kpis')->where('id', $kpiId)->first();
         if ($kpi) {
             $this->editingKpiId = $kpi->id;
-            $this->newKpiName = $kpi->name;
-            $this->newKpiDescription = $kpi->description;
-            $this->newKpiTarget = $kpi->target;
+            $this->newKpiName = $kpi->nombre ?? $kpi->name;
+            $this->newKpiDescription = $kpi->descripcion ?? $kpi->description;
+            $this->newKpiTarget = $kpi->meta ?? $kpi->target ?? 95;
             $this->showModal = true;
         }
     }
@@ -424,14 +356,14 @@ class KpisAreas extends Component
             'newKpiName' => 'required|string|max:255',
         ]);
 
-        $db = DB::connection('sistema_tickets');
+        $db = DB::connection('areaskpi');
 
         if ($this->editingKpiId) {
             // Update existing KPI
             $db->table('kpis')->where('id', $this->editingKpiId)->update([
-                'name' => $this->newKpiName,
-                'description' => $this->newKpiDescription,
-                'target' => $this->newKpiTarget,
+                'nombre' => $this->newKpiName,
+                'descripcion' => $this->newKpiDescription,
+                'meta' => $this->newKpiTarget,
                 'updated_at' => now(),
             ]);
 
@@ -439,48 +371,30 @@ class KpisAreas extends Component
         } else {
             // Create new KPI
             $areaCat = !empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD';
-            $code = strtoupper(substr($areaCat, 0, 4)) . '_' . time();
+            $area = $db->table('areas')->where('nombre', $areaCat)->first();
+            $areaId = $area ? $area->id : 1;
 
             $kpiId = $db->table('kpis')->insertGetId([
-                'name' => $this->newKpiName,
-                'code' => $code,
-                'description' => $this->newKpiDescription,
-                'category' => $areaCat,
-                'target' => $this->newKpiTarget,
-                'is_active' => 1,
+                'area_id' => $areaId,
+                'nombre' => $this->newKpiName,
+                'descripcion' => $this->newKpiDescription,
+                'meta' => $this->newKpiTarget,
+                'tipo' => '%',
+                'periodicidad' => 'mensual',
+                'is_inverse' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Create default results for month 8 (weeks 1 to 5)
-            // Create default results for active month and weeks
-            $totalWeeks = count($this->weeksList);
-            for ($w = 1; $w <= $totalWeeks; $w++) {
-                $db->table('kpi_results')->insert([
-                    'kpi_id' => $kpiId,
-                    'year' => $this->selectedYear,
-                    'month' => $this->selectedMonth,
-                    'semana' => $w,
-                    'value' => -1,
-                    'target_value' => 95.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            // Create default results for months 1 to 12 (monthly summary rows, semana = null)
-            for ($m = 1; $m <= 12; $m++) {
-                $db->table('kpi_results')->insert([
-                    'kpi_id' => $kpiId,
-                    'year' => $this->selectedYear,
-                    'month' => $m,
-                    'semana' => null,
-                    'value' => -1,
-                    'target_value' => $this->newKpiTarget,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
+            // Create initial value record for current month
+            $db->table('kpi_values')->insert([
+                'kpi_id' => $kpiId,
+                'valor' => null,
+                'fecha' => sprintf('%04d-%02d-01', $this->selectedYear, $this->selectedMonth),
+                'notas' => '',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             session()->flash('success', 'Nuevo KPI agregado correctamente.');
         }
@@ -492,15 +406,16 @@ class KpisAreas extends Component
 
     public function deleteKpi($kpiId)
     {
-        $db = DB::connection('sistema_tickets');
-        $db->table('kpis')->where('id', $kpiId)->update(['is_active' => 0, 'updated_at' => now()]);
+        $db = DB::connection('areaskpi');
+        $db->table('kpi_values')->where('kpi_id', $kpiId)->delete();
+        $db->table('kpis')->where('id', $kpiId)->delete();
         session()->flash('success', 'KPI eliminado exitosamente.');
         $this->loadKpiData();
     }
 
     public function render()
     {
-        $db = DB::connection('sistema_tickets');
+        $db = DB::connection('areaskpi');
         
         $officialAreas = [
             'ALMACEN',
@@ -543,39 +458,52 @@ class KpisAreas extends Component
         $totalWeeks = count($this->weeksList);
 
         foreach ($officialAreas as $areaItem) {
-            $kpisForArea = $db->table('kpis')
-                ->where('is_active', 1)
-                ->where(function($q) use ($areaItem) {
-                    $q->where('category', $areaItem)
-                      ->orWhere('category', 'LIKE', '%' . $areaItem . '%');
-                })
-                ->orderBy('id', 'asc')
-                ->get();
+            $areaRow = $db->table('areas')->where('nombre', $areaItem)->first();
+            
+            if ($areaRow) {
+                $kpisForArea = $db->table('kpis')
+                    ->where('area_id', $areaRow->id)
+                    ->select(
+                        'id',
+                        'area_id',
+                        'nombre as name',
+                        'descripcion as description',
+                        'meta as target',
+                        'formula',
+                        'tipo',
+                        'periodicidad',
+                        'is_inverse'
+                    )
+                    ->orderBy('id', 'asc')
+                    ->get();
+            } else {
+                $kpisForArea = collect();
+            }
 
             $totalKpis = count($kpisForArea);
             $totalKpisGlobal += $totalKpis;
 
             $kpiIds = $kpisForArea->pluck('id');
 
-            // Mayo Average (Previous Month)
-            $avgMayo = $totalKpis > 0 ? $db->table('kpi_results')
+            // Previous Month Average
+            $avgMayo = $totalKpis > 0 ? $db->table('kpi_values')
                 ->whereIn('kpi_id', $kpiIds)
-                ->where('year', $prevMonthYear)
-                ->where('month', $prevMonthNum)
-                ->whereNull('semana')
-                ->where('value', '>=', 0)
-                ->avg('value') : null;
+                ->whereYear('fecha', $prevMonthYear)
+                ->whereMonth('fecha', $prevMonthNum)
+                ->whereNotNull('valor')
+                ->where('valor', '>=', 0)
+                ->avg('valor') : null;
             $pctMayo = $avgMayo !== null ? round($avgMayo, 1) : 0;
             $totalMayoCumplimientoSum += $pctMayo;
 
-            // Junio Average (Selected Month)
-            $avgJunio = $totalKpis > 0 ? $db->table('kpi_results')
+            // Selected Month Average
+            $avgJunio = $totalKpis > 0 ? $db->table('kpi_values')
                 ->whereIn('kpi_id', $kpiIds)
-                ->where('year', $this->selectedYear)
-                ->where('month', $latestMonthNum)
-                ->whereNull('semana')
-                ->where('value', '>=', 0)
-                ->avg('value') : null;
+                ->whereYear('fecha', $this->selectedYear)
+                ->whereMonth('fecha', $latestMonthNum)
+                ->whereNotNull('valor')
+                ->where('valor', '>=', 0)
+                ->avg('valor') : null;
             $pctJunio = $avgJunio !== null ? round($avgJunio, 1) : 0;
             $totalJunioCumplimientoSum += $pctJunio;
 
@@ -599,17 +527,17 @@ class KpisAreas extends Component
                 $areasEnAtencionCount++;
             }
 
-            // Build individual KPI dots for MAYO (Previous Month)
+            // Build individual KPI dots for Previous Month
             $kpiDotsMayo = [];
             foreach ($kpisForArea as $kpiObj) {
-                $resM = $db->table('kpi_results')
+                $resM = $db->table('kpi_values')
                     ->where('kpi_id', $kpiObj->id)
-                    ->where('year', $prevMonthYear)
-                    ->where('month', $prevMonthNum)
-                    ->whereNull('semana')
+                    ->whereYear('fecha', $prevMonthYear)
+                    ->whereMonth('fecha', $prevMonthNum)
+                    ->orderBy('fecha', 'desc')
                     ->first();
 
-                $vM = ($resM && $resM->value !== null) ? (float)$resM->value : -1;
+                $vM = ($resM && $resM->valor !== null) ? (float)$resM->valor : -1;
 
                 if ($vM < 0) {
                     $dotColor = '#94a3b8';
@@ -642,38 +570,26 @@ class KpisAreas extends Component
             $areaKpisCountWithVal = 0;
 
             foreach ($kpisForArea as $kpiObj) {
-                $targetVal = 95.0;
+                $targetVal = (float)($kpiObj->target ?? 95.0);
 
-                // Query all results for this KPI in current month (both weekly and monthly summary)
-                $allKpiResults = $db->table('kpi_results')
+                $monthlyRes = $db->table('kpi_values')
                     ->where('kpi_id', $kpiObj->id)
-                    ->where('year', $this->selectedYear)
-                    ->where('month', $latestMonthNum)
-                    ->get();
+                    ->whereYear('fecha', $this->selectedYear)
+                    ->whereMonth('fecha', $latestMonthNum)
+                    ->orderBy('fecha', 'desc')
+                    ->first();
 
-                $monthlyRes = $allKpiResults->whereNull('semana')->first();
-                $weeklyResults = $allKpiResults->whereNotNull('semana')->keyBy('semana');
+                $vJ = ($monthlyRes && $monthlyRes->valor !== null) ? (float)$monthlyRes->valor : -1;
 
-                $vJ = ($monthlyRes && $monthlyRes->value !== null) ? (float)$monthlyRes->value : -1;
-
-                // Build weekly breakdown
+                // Build weekly breakdown representation
                 $weeksBreakdown = [];
-                $sumWeekly = 0;
-                $countWeekly = 0;
-                $weeksValuesList = [];
-
                 for ($w = 1; $w <= $totalWeeks; $w++) {
-                    $wRes = $weeklyResults->get($w);
-                    $wVal = ($wRes && $wRes->value !== null && $wRes->value != -1.00) ? (float)$wRes->value : null;
-                    $wDate = ($wRes && !empty($wRes->period_date)) ? \Carbon\Carbon::parse($wRes->period_date)->format('d/m/Y') : '';
-                    
                     $wLabel = $this->weeksList[$w]['label'] ?? "Semana $w";
                     $wRange = $this->weeksList[$w]['range'] ?? '';
+                    $wVal = $vJ >= 0 ? $vJ : null;
+                    $wDate = $monthlyRes ? \Carbon\Carbon::parse($monthlyRes->fecha)->format('d/m/Y') : '';
 
-                    if ($wVal !== null && $wVal >= 0) {
-                        $sumWeekly += $wVal;
-                        $countWeekly++;
-                        $weeksValuesList[] = $wVal . '%';
+                    if ($wVal !== null) {
                         if ($wVal >= $targetVal) {
                             $wColor = '#10b981';
                         } elseif ($wVal >= 80.0) {
@@ -696,7 +612,6 @@ class KpisAreas extends Component
                     ];
                 }
 
-                // If weekly records exist and monthly average differs, update status accordingly
                 if ($vJ < 0) {
                     $dotColor = '#94a3b8';
                     $statusText = 'Sin Registro / Pendiente';
@@ -733,14 +648,10 @@ class KpisAreas extends Component
                     $areaKpisCountWithVal++;
                 }
 
-                // Explanation text
-                if ($countWeekly > 0) {
-                    $avgCalc = round($sumWeekly / $countWeekly, 1);
-                    $calcExplanation = "Promedio de {$countWeekly} semana(s) registradas: (" . implode(' + ', $weeksValuesList) . ") ÷ {$countWeekly} = {$avgCalc}%";
-                } elseif ($vJ >= 0) {
-                    $calcExplanation = "Puntaje consolidado capturado directamente para el mes: {$vJ}%";
+                if ($vJ >= 0) {
+                    $calcExplanation = "Puntaje consolidado de evaluación para {$latestMonthName}: {$vJ}%" . (!empty($kpiObj->formula) ? " (Fórmula: {$kpiObj->formula})" : "");
                 } else {
-                    $calcExplanation = "No se han capturado evaluaciones en las semanas de este periodo.";
+                    $calcExplanation = "No se ha capturado evaluación para este indicador en {$latestMonthName}." . (!empty($kpiObj->formula) ? " (Fórmula: {$kpiObj->formula})" : "");
                 }
 
                 $kpiDotsJunio[] = [
@@ -755,10 +666,10 @@ class KpisAreas extends Component
                     'status_bg' => $statusBadgeBg,
                     'status_color' => $statusBadgeColor,
                     'weeks' => $weeksBreakdown,
-                    'weeks_count' => $countWeekly,
+                    'weeks_count' => $vJ >= 0 ? 1 : 0,
                     'calc_explanation' => $calcExplanation,
-                    'cierre_notas' => $monthlyRes->notes ?? '',
-                    'inicio_notas' => $monthlyRes->inicio_semana ?? '',
+                    'cierre_notas' => $monthlyRes->notas ?? '',
+                    'inicio_notas' => '',
                 ];
             }
 
@@ -767,17 +678,17 @@ class KpisAreas extends Component
             if ($diff > 0) {
                 $trendText = "+{$diff}%";
                 $trendIcon = 'fa-arrow-trend-up';
-                $trendColor = '#10b981'; // Green
+                $trendColor = '#10b981';
                 $trendBg = '#d1fae5';
             } elseif ($diff < 0) {
                 $trendText = "{$diff}%";
                 $trendIcon = 'fa-arrow-trend-down';
-                $trendColor = '#ef4444'; // Red
+                $trendColor = '#ef4444';
                 $trendBg = '#fee2e2';
             } else {
                 $trendText = "0.0%";
                 $trendIcon = 'fa-minus';
-                $trendColor = '#64748b'; // Grey
+                $trendColor = '#64748b';
                 $trendBg = '#f1f5f9';
             }
 
@@ -814,14 +725,24 @@ class KpisAreas extends Component
         $weeklyAverages = [];
 
         if (!empty($this->selectedArea)) {
-            $kpis = $db->table('kpis')
-                ->where('is_active', 1)
-                ->where(function($q) {
-                    $q->where('category', $this->selectedArea)
-                      ->orWhere('category', 'LIKE', '%' . $this->selectedArea . '%');
-                })
-                ->orderBy('id', 'asc')
-                ->get();
+            $areaObj = $db->table('areas')->where('nombre', $this->selectedArea)->first();
+            if ($areaObj) {
+                $kpis = $db->table('kpis')
+                    ->where('area_id', $areaObj->id)
+                    ->select(
+                        'id',
+                        'area_id',
+                        'nombre as name',
+                        'descripcion as description',
+                        'meta as target',
+                        'formula',
+                        'tipo',
+                        'periodicidad',
+                        'is_inverse'
+                    )
+                    ->orderBy('id', 'asc')
+                    ->get();
+            }
 
             $totalWeeks = count($this->weeksList);
             for ($w = 1; $w <= $totalWeeks; $w++) {
