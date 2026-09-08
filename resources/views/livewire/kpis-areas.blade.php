@@ -675,8 +675,7 @@
                                 <td wire:key="kpi-week-cell-{{ $kpi->id }}-{{ $wNum }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 0.75rem 0.25rem; vertical-align: top; text-align: center;">
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                         <input type="text"
-                                            wire:model.defer="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
-                                            value="{{ $val }}"
+                                            wire:model="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
                                             data-target="95"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
@@ -761,7 +760,7 @@
                             <!-- Inicio de Semana Field -->
                             <td wire:key="kpi-startnote-cell-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top;">
                                 <textarea
-                                    wire:model.defer="kpiStartNotes.{{ $kpi->id }}"
+                                    wire:model="kpiStartNotes.{{ $kpi->id }}"
                                     placeholder="Inicio de semana..."
                                     rows="3"
                                     style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 0.78rem; font-family: inherit; color: #334155; outline: none; resize: vertical; min-height: 52px; line-height: 1.35; background: white; transition: border-color 0.2s;"></textarea>
@@ -770,7 +769,7 @@
                             <!-- Cierre de Semana Field -->
                             <td wire:key="kpi-note-cell-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top;">
                                 <textarea
-                                    wire:model.defer="kpiNotes.{{ $kpi->id }}"
+                                    wire:model="kpiNotes.{{ $kpi->id }}"
                                     placeholder="Cierre de semana..."
                                     rows="3"
                                     style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 0.78rem; font-family: inherit; color: #334155; outline: none; resize: vertical; min-height: 52px; line-height: 1.35; background: white; transition: border-color 0.2s;"></textarea>
@@ -894,7 +893,7 @@
                     <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
                         Nombre del KPI *
                     </label>
-                    <input type="text" wire:model.defer="newKpiName" placeholder="Ej. Cumplimiento de entregas" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-weight: 600; color: #0f172a; outline: none;" />
+                    <input type="text" wire:model="newKpiName" placeholder="Ej. Cumplimiento de entregas" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-weight: 600; color: #0f172a; outline: none;" />
                     @error('newKpiName')
                         <span style="color: #ef4444; font-size: 0.75rem; font-weight: 600;">{{ $message }}</span>
                     @enderror
@@ -904,14 +903,14 @@
                     <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
                         Descripción
                     </label>
-                    <textarea wire:model.defer="newKpiDescription" placeholder="Breve descripción del indicador..." rows="3" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-family: inherit; font-size: 0.85rem; color: #0f172a; outline: none;"></textarea>
+                    <textarea wire:model="newKpiDescription" placeholder="Breve descripción del indicador..." rows="3" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-family: inherit; font-size: 0.85rem; color: #0f172a; outline: none;"></textarea>
                 </div>
 
                 <div style="margin-bottom: 1.75rem;">
                     <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
                         Meta (%)
                     </label>
-                    <input type="number" wire:model.defer="newKpiTarget" min="0" max="100" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-weight: 700; color: #0f172a; outline: none;" />
+                    <input type="number" wire:model="newKpiTarget" min="0" max="100" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-weight: 700; color: #0f172a; outline: none;" />
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
