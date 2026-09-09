@@ -368,22 +368,37 @@ class KpisAreas extends Component
             // Save the monthly average in the row with semana = null
             $monthlyVal = ($hasAnyVal && $countVal > 0) ? round($sumVal / $countVal, 1) : -1;
 
-            $db->table('kpi_results')->updateOrInsert(
-                [
-                    'kpi_id' => $kpiId,
-                    'year' => $this->selectedYear,
-                    'month' => $this->selectedMonth,
-                    'semana' => null
-                ],
-                [
+            $existingMonthly = $db->table('kpi_results')
+                ->where('kpi_id', $kpiId)
+                ->where('year', $this->selectedYear)
+                ->where('month', $this->selectedMonth)
+                ->whereNull('semana')
+                ->first();
+
+            if ($existingMonthly) {
+                $db->table('kpi_results')->where('id', $existingMonthly->id)->update([
                     'value' => $monthlyVal,
                     'target_value' => 95.00,
                     'period_date' => now()->format('Y-m-d'),
                     'notes' => $note,
                     'inicio_semana' => $startNote,
                     'updated_at' => now(),
-                ]
-            );
+                ]);
+            } else {
+                $db->table('kpi_results')->insert([
+                    'kpi_id' => $kpiId,
+                    'year' => $this->selectedYear,
+                    'month' => $this->selectedMonth,
+                    'semana' => null,
+                    'value' => $monthlyVal,
+                    'target_value' => 95.00,
+                    'period_date' => now()->format('Y-m-d'),
+                    'notes' => $note,
+                    'inicio_semana' => $startNote,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         session()->flash('success', '¡Porcentajes y avances de KPI´s guardados exitosamente!');
