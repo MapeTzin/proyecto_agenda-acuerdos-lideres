@@ -34,6 +34,21 @@ return [
     */
 
     'connections' => [
+        'mysql_auth' => [
+            'driver'    => 'mysql',
+            'host'      => env('AUTH_DB_HOST', '192.168.100.12'),
+            'port'      => env('AUTH_DB_PORT', '3306'),
+            'database'  => env('AUTH_DB_DATABASE', 'auth_center'),
+            'username'  => env('AUTH_DB_USERNAME', 'admindb'),
+            'password'  => env('AUTH_DB_PASSWORD', ''),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => true,
+            'engine'    => null,
+        ],
+
+
 
         'sqlite' => [
             'driver' => 'sqlite',

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\AuthCenterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,27 +25,6 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function register(\Illuminate\Http\Request $request)
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'area' => ['required', 'string', 'max:255'],
-        ]);
-
-        $user = \App\Models\User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
-            'area' => $validated['area'],
-        ]);
-
-        Auth::login($user);
-
-        return redirect()->route('dashboard');
-    }
-
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -51,15 +32,49 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
+        $email = $credentials['email'];
+        $password = $credentials['password'];
+        $remember = $request->boolean('remember');
 
-            return redirect()->intended('dashboard');
+        $authCenterService = new AuthCenterService();
+        $authUser = $authCenterService->validateCredentials($email, $password);
+
+        if (!$authUser) {
+            $authCenterService->logLoginAttempt(null, $email, 'failed', 'Credenciales inválidas o cuenta desactivada', $request);
+
+            return back()->withErrors([
+                'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros o la cuenta está desactivada.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
-        ])->onlyInput('email');
+        // Verificar acceso en user_system_access para agenda_acuerdos
+        if (!$authCenterService->userHasSystemAccess($authUser->id, 'agenda_acuerdos')) {
+            $authCenterService->logLoginAttempt($authUser->id, $email, 'blocked', 'Sin acceso asignado al sistema de Agenda de Acuerdos', $request);
+
+            return back()->withErrors([
+                'email' => 'Su cuenta no tiene acceso asignado al sistema de Agenda de Acuerdos.',
+            ])->onlyInput('email');
+        }
+
+        // Obtener usuario del modelo User (que ahora conecta a mysql_auth.users)
+        $user = User::where('id', $authUser->id)
+            ->orWhere('email', $email)
+            ->first();
+
+        if (!$user) {
+            $authCenterService->logLoginAttempt($authUser->id, $email, 'failed', 'Usuario no encontrado en modelo User', $request);
+
+            return back()->withErrors([
+                'email' => 'Usuario no encontrado en el sistema.',
+            ])->onlyInput('email');
+        }
+
+        Auth::login($user, $remember);
+        $request->session()->regenerate();
+
+        $authCenterService->logLoginAttempt($authUser->id, $email, 'success', 'Inicio de sesión exitoso', $request);
+
+        return redirect()->intended('dashboard');
     }
 
     public function logout(Request $request)
@@ -74,20 +89,11 @@ class AuthController extends Controller
 
     public function showChangePassword()
     {
-        return view('auth.change-password');
+        return redirect()->route('dashboard')->with('info', 'La administración de contraseñas está centralizada en Auth Center.');
     }
 
     public function updatePassword(Request $request)
     {
-        $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $user = Auth::user();
-        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
-        $user->must_change_password = false;
-        $user->save();
-
-        return redirect()->route('dashboard')->with('success', 'Contraseña actualizada correctamente.');
+        return redirect()->route('dashboard')->with('info', 'La administración de contraseñas está centralizada en Auth Center.');
     }
 }

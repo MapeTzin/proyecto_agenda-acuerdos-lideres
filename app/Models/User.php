@@ -19,7 +19,7 @@ class User extends Authenticatable
     }
 
     protected $connection = 'mysql';
-    protected $table = 'sistema_tickets.users';
+    protected $table = 'auth_center.users';
 
     /**
      * The attributes that are mass assignable.
@@ -80,8 +80,7 @@ class User extends Authenticatable
         
         if (!$rawArea && !empty($this->department_id)) {
             if (!isset(self::$departmentCache[$this->department_id])) {
-                self::$departmentCache[$this->department_id] = \Illuminate\Support\Facades\DB::connection('mysql')
-                    ->table('sistema_tickets.departments')
+                self::$departmentCache[$this->department_id] = \Illuminate\Support\Facades\DB::connection('mysql_auth')->table('departments')
                     ->where('id', $this->department_id)
                     ->value('name');
             }
