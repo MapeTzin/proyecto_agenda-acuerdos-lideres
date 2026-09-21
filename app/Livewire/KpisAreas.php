@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 class KpisAreas extends Component
 {
     public $selectedArea = ''; // Empty string = Monitor Global (Vista Corporativa)
-    public $selectedYear = 2026;
-    public $selectedMonth = 8; // Default to August (month 8)
+    public $selectedYear;
+    public $selectedMonth;
     public $isAdminUser = false;
     public $userAreaName = 'CONTABILIDAD';
     
@@ -157,7 +157,8 @@ class KpisAreas extends Component
             $this->selectedArea = $this->userAreaName; // Non-admin locks to their area
         }
 
-        $this->selectedMonth = 8; // Default to August
+        $this->selectedYear = $this->selectedYear ?: (int) now()->format('Y');
+        $this->selectedMonth = $this->selectedMonth ?: (int) now()->format('n');
         $this->weeksList = $this->getWeeksOfMonth($this->selectedYear, $this->selectedMonth);
         $this->loadKpiData();
     }
