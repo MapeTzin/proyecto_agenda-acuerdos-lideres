@@ -212,6 +212,12 @@
             <h2 style="margin-top: 1rem;">Bienvenido</h2>
             <p>Ingresa tus credenciales para continuar</p>
 
+            @if (session('status'))
+                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 0.75rem; border-radius: 0.75rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
+                    <i class="fas fa-check-circle" style="margin-right: 6px;"></i> {{ session('status') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="error-message">
                     @foreach ($errors->all() as $error)
@@ -226,13 +232,18 @@
                     <label>Correo Electrónico</label>
                     <div class="input-wrapper">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" name="email" class="form-control" placeholder="ejemplo@agenda.com" required
+                        <input type="email" name="email" class="form-control" placeholder="ejemplo@mapetzin.com" required
                             value="{{ old('email') }}">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Contraseña</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label style="margin-bottom: 0; padding-left: 0.5rem;">Contraseña</label>
+                        <a href="{{ route('password.request') }}" style="color: #818cf8; font-size: 0.8rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#a5b4fc'" onmouseout="this.style.color='#818cf8'">
+                            ¿Olvidaste tu contraseña?
+                        </a>
+                    </div>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
                         <input type="password" name="password" class="form-control" placeholder="••••••••" required>

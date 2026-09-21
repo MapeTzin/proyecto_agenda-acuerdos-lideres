@@ -17,6 +17,7 @@ use App\Http\Controllers\AcuerdoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Livewire\Dashboard;
 use App\Livewire\SeguimientoArea;
 use App\Livewire\KpisAreas;
@@ -30,6 +31,18 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Rutas de recuperación de contraseña (estandarizadas con Auth Center)
+Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+
+// Cambio de contraseña para usuarios autenticados
+Route::middleware('auth')->group(function () {
+    Route::get('/change-password', [AuthController::class, 'showChangePassword'])->name('password.change');
+    Route::post('/change-password', [AuthController::class, 'updateChangePassword'])->name('password.change.post');
+});
 
 Route::middleware(['auth', 'force-password', 'has-access'])->group(function () {
     Route::get('/', function () {
