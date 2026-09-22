@@ -16,10 +16,21 @@ class RestrictToArochiMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::user()->email !== 'soporte@mapetzin.com') {
-            abort(403, 'Solo el super administrador puede gestionar los usuarios.');
+        $user = Auth::user();
+
+        if (!$user) {
+            abort(403, 'Acceso no autorizado.');
         }
 
-        return $next($request);
+        if (
+            $user->email === 'soporte@mapetzin.com' ||
+            $user->hasRole('Administrador') ||
+            $user->can('roles.manage') ||
+            $user->can('users.manage')
+        ) {
+            return $next($request);
+        }
+
+        abort(403, 'No tiene permisos suficientes para gestionar roles y accesos.');
     }
 }

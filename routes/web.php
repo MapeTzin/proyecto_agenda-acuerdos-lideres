@@ -17,6 +17,7 @@ use App\Http\Controllers\AcuerdoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Livewire\Dashboard;
 use App\Livewire\SeguimientoArea;
@@ -66,6 +67,19 @@ Route::middleware(['auth', 'force-password', 'has-access'])->group(function () {
     // Users Management
     Route::resource('users', UserController::class);
     Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+
+    // Roles, Permisos y Gestión de Accesos Auth Center
+    Route::prefix('roles-permisos')->name('roles-permisos.')->group(function () {
+        Route::get('/', [RolePermissionController::class, 'index'])->name('index');
+        Route::post('/grant-access', [RolePermissionController::class, 'grantAccess'])->name('grant-access');
+        Route::put('/user/{user}', [RolePermissionController::class, 'updateUserAccess'])->name('user.update');
+        Route::post('/user/{user}/revoke', [RolePermissionController::class, 'revokeAccess'])->name('user.revoke');
+        Route::post('/roles', [RolePermissionController::class, 'storeRole'])->name('roles.store');
+        Route::put('/roles/{role}', [RolePermissionController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{role}', [RolePermissionController::class, 'destroyRole'])->name('roles.destroy');
+        Route::post('/permissions', [RolePermissionController::class, 'storePermission'])->name('permissions.store');
+        Route::post('/sync-system-permissions', [RolePermissionController::class, 'syncSystemPermissions'])->name('permissions.sync');
+    });
 
     Route::resource('acuerdos', AcuerdoController::class);
     Route::post('/acuerdos/{acuerdo}/comment', [AcuerdoController::class, 'comment'])->name('acuerdos.comment');

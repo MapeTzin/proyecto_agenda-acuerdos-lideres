@@ -50,6 +50,70 @@ class AuthCenterService
         }
     }
 
+    public function getSystemId(string $systemCode = 'agenda_acuerdos'): ?int
+    {
+        try {
+            return \Illuminate\Support\Facades\DB::connection('mysql_auth')
+                ->table('systems')
+                ->where('code', $systemCode)
+                ->value('id');
+        } catch (\Exception $e) {
+            Log::error('AuthCenterService::getSystemId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function grantSystemAccess(int $authUserId, ?int $assignedBy = null, string $systemCode = 'agenda_acuerdos'): bool
+    {
+        try {
+            $systemId = $this->getSystemId($systemCode);
+            if (!$systemId) {
+                Log::error("AuthCenterService::grantSystemAccess: Sistema {$systemCode} no encontrado.");
+                return false;
+            }
+
+            UserSystemAccess::updateOrCreate(
+                [
+                    'user_id' => $authUserId,
+                    'system_id' => $systemId,
+                ],
+                [
+                    'is_active' => true,
+                    'assigned_by' => $assignedBy,
+                    'assigned_at' => now(),
+                    'revoked_at' => null,
+                ]
+            );
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('AuthCenterService::grantSystemAccess: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function revokeSystemAccess(int $authUserId, string $systemCode = 'agenda_acuerdos'): bool
+    {
+        try {
+            $systemId = $this->getSystemId($systemCode);
+            if (!$systemId) {
+                return false;
+            }
+
+            UserSystemAccess::where('user_id', $authUserId)
+                ->where('system_id', $systemId)
+                ->update([
+                    'is_active' => false,
+                    'revoked_at' => now(),
+                ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('AuthCenterService::revokeSystemAccess: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function logLoginAttempt(?int $userId, ?string $email, string $status, ?string $message, Request $request, string $systemCode = 'agenda_acuerdos'): void
     {
         try {

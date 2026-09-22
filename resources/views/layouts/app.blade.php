@@ -484,10 +484,10 @@
             <i class="fas fa-calendar-alt"></i>
             <span>Planeador</span>
         </a>
-        @if(auth()->user()->email === 'soporte@mapetzin.com')
-            <a href="{{ route('users.index') }}" class="nav-item {{ request()->routeIs('users.index') ? 'active' : '' }}">
-                <i class="fas fa-users-cog"></i>
-                <span>Gestión de Usuarios</span>
+        @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->hasRole('Administrador') || auth()->user()->can('roles.manage') || auth()->user()->can('users.manage'))
+            <a href="{{ route('roles-permisos.index') }}" class="nav-item {{ request()->routeIs('roles-permisos.*') || request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-user-shield"></i>
+                <span>Roles y Accesos</span>
             </a>
         @endif
         <div style="margin-top: auto; padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">

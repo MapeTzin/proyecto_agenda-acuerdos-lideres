@@ -18,22 +18,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::with('roles')->has('roles')->where('is_active', 1);
-
-        if ($request->has('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'LIKE', '%' . $request->search . '%')
-                  ->orWhere('email', 'LIKE', '%' . $request->search . '%');
-            });
-        }
-
-        $users = $query->orderBy('name')->paginate(10);
-        $roles = Role::all();
-        
-        // Users from ticket system without access to agenda and are active
-        $availableUsers = User::where('is_active', 1)->doesntHave('roles')->orderBy('name')->get();
-
-        return view('users.index', compact('users', 'roles', 'availableUsers'));
+        return redirect()->route('roles-permisos.index');
     }
 
     public function store(Request $request)
@@ -44,7 +29,9 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
-        $user->assignRole($request->role);
+        $user->syncRoles([$request->role]);
+
+        (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
         return response()->json(['success' => true]);
     }
@@ -57,18 +44,24 @@ class UserController extends Controller
 
         $user->syncRoles([$request->role]);
 
+        (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
+
         return response()->json(['success' => true]);
     }
 
     public function toggleStatus(User $user)
     {
         $user->syncRoles([]);
+        (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
+
         return response()->json(['success' => true, 'is_active' => false]);
     }
 
     public function destroy(User $user)
     {
         $user->syncRoles([]);
+        (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
+
         return response()->json(['success' => true]);
     }
 }
