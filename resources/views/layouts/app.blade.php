@@ -500,7 +500,7 @@
             </a>
         @endcan
 
-        @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->hasRole('Administrador') || auth()->user()->can('roles.manage') || auth()->user()->can('users.manage'))
+        @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('roles.manage') || auth()->user()->can('users.manage') || auth()->user()->can('users.view'))
             <a href="{{ route('roles-permisos.index') }}" class="nav-item {{ request()->routeIs('roles-permisos.*') || request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>
                 <span>Roles y Accesos</span>

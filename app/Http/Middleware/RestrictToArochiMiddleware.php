@@ -24,9 +24,9 @@ class RestrictToArochiMiddleware
 
         if (
             $user->email === 'soporte@mapetzin.com' ||
-            $user->hasRole('Administrador') ||
             $user->can('roles.manage') ||
-            $user->can('users.manage')
+            $user->can('users.manage') ||
+            $user->can('users.view')
         ) {
             return $next($request);
         }

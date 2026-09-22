@@ -37,10 +37,14 @@
 
         <!-- Tab Navigation (Usuarios, Roles del Sistema, Permisos) -->
         <div class="nav-tabs-wrapper">
+            @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.view') || auth()->user()->can('users.manage'))
             <button class="tab-btn active" onclick="switchTab('tab-users')" id="btn-tab-users">
                 <i class="fas fa-users"></i> Usuarios
                 <span class="badge-count">{{ $totalUsersWithAccess }}</span>
             </button>
+            @endif
+
+            @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('roles.manage'))
             <button class="tab-btn" onclick="switchTab('tab-roles')" id="btn-tab-roles">
                 <i class="fas fa-shield-alt"></i> Roles del Sistema
                 <span class="badge-count">{{ $roles->count() }}</span>
@@ -49,14 +53,17 @@
                 <i class="fas fa-key"></i> Permisos
                 <span class="badge-count">{{ $permissions->count() }}</span>
             </button>
+            @endif
         </div>
     </div>
 
     <!-- ========================================== -->
     <!-- TAB 1: USUARIOS CON ACCESO -->
     <!-- ========================================== -->
+    @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.view') || auth()->user()->can('users.manage'))
     <div id="tab-users" class="tab-content active">
 
+        @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.manage'))
         <!-- Panel Superior: Selección de Usuario y Concesión de Acceso Inmediato -->
         <div class="card quick-grant-card">
             <div class="quick-grant-header">
@@ -119,6 +126,7 @@
                 </div>
             </form>
         </div>
+        @endif
 
         <!-- Tabla de Usuarios con Acceso -->
         <div class="card content-card">
@@ -224,7 +232,7 @@
                                             <i class="fas fa-lock"></i> Permanente
                                         </span>
                                     </div>
-                                @else
+                                @elseif(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.manage'))
                                     <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
                                         <button onclick="openEditUserModal({{ json_encode($user) }}, {{ json_encode($user->roles->pluck('name')) }}, {{ json_encode($user->permissions->pluck('name')) }})"
                                                 class="btn-action-icon btn-action-edit" title="Editar Rol y Permisos">
@@ -235,6 +243,10 @@
                                                 class="btn-action-icon btn-action-revoke" title="Revocar Acceso al Sistema">
                                             <i class="fas fa-user-slash"></i>
                                         </button>
+                                    </div>
+                                @else
+                                    <div style="display: flex; justify-content: flex-end;">
+                                        <span style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">Solo lectura</span>
                                     </div>
                                 @endif
                             </td>
@@ -257,7 +269,9 @@
             </div>
         </div>
     </div>
+    @endif
 
+    @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('roles.manage'))
     <!-- ========================================== -->
     <!-- TAB 2: ROLES DEL SISTEMA -->
     <!-- ========================================== -->
@@ -417,12 +431,14 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 
 <!-- ========================================== -->
 <!-- MODALES -->
 <!-- ========================================== -->
 
+@if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.manage'))
 <!-- Modal: Concesión Avanzada de Acceso -->
 <div id="grantAccessModal" class="modal-overlay" style="display: none;">
     <div class="modal-dialog modal-dialog-lg">
@@ -567,7 +583,9 @@
         </form>
     </div>
 </div>
+@endif
 
+@if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('roles.manage'))
 <!-- Modal: Crear / Editar Rol -->
 <div id="roleModal" class="modal-overlay" style="display: none;">
     <div class="modal-dialog modal-dialog-lg">
@@ -655,6 +673,7 @@
         </form>
     </div>
 </div>
+@endif
 
 <!-- SweetAlert2 & Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -669,9 +688,8 @@
         if (targetTab && targetBtn) {
             targetTab.classList.add('active');
             targetBtn.classList.add('active');
+            window.location.hash = tabId;
         }
-
-        window.location.hash = tabId;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -680,14 +698,24 @@
         const tabParam = urlParams.get('tab') || hash;
         if (tabParam && document.getElementById(tabParam)) {
             switchTab(tabParam);
+        } else {
+            const firstBtn = document.querySelector('.tab-btn');
+            if (firstBtn) {
+                const targetId = firstBtn.id ? firstBtn.id.replace('btn-', '') : null;
+                if (targetId && document.getElementById(targetId)) {
+                    switchTab(targetId);
+                }
+            }
         }
     });
 
     // 1. Concesión rápida desde el panel superior
-    document.getElementById('quickGrantForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const userId = document.getElementById('quickUserId').value;
-        const role = document.getElementById('quickUserRole').value;
+    const quickGrantForm = document.getElementById('quickGrantForm');
+    if (quickGrantForm) {
+        quickGrantForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('quickUserId').value;
+            const role = document.getElementById('quickUserRole').value;
 
         if (!userId) {
             Swal.fire('Atención', 'Por favor selecciona un colaborador de la lista.', 'warning');
@@ -728,7 +756,8 @@
             btn.innerHTML = '<i class="fas fa-check-circle"></i> Conceder Acceso';
             Swal.fire('Error', 'Fallo en la comunicación con el servidor.', 'error');
         });
-    });
+        });
+    }
 
     // Modal Helpers
     function openGrantAccessModal() {
@@ -821,76 +850,82 @@
     }
 
     // Modal Concesión Avanzada
-    document.getElementById('grantAccessForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const selectedPerms = Array.from(document.querySelectorAll('input[name="grant_permissions[]"]:checked')).map(cb => cb.value);
-        const selectedRoleEl = document.querySelector('input[name="modal_grant_role"]:checked');
+    const grantAccessForm = document.getElementById('grantAccessForm');
+    if (grantAccessForm) {
+        grantAccessForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selectedPerms = Array.from(document.querySelectorAll('input[name="grant_permissions[]"]:checked')).map(cb => cb.value);
+            const selectedRoleEl = document.querySelector('input[name="modal_grant_role"]:checked');
 
-        const data = {
-            user_id: document.getElementById('modalGrantUserId').value,
-            role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
-            permissions: selectedPerms,
-            _token: '{{ csrf_token() }}'
-        };
+            const data = {
+                user_id: document.getElementById('modalGrantUserId').value,
+                role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
+                permissions: selectedPerms,
+                _token: '{{ csrf_token() }}'
+            };
 
-        const btn = document.getElementById('btnSubmitGrant');
-        btn.disabled = true;
+            const btn = document.getElementById('btnSubmitGrant');
+            btn.disabled = true;
 
-        fetch('{{ route('roles-permisos.grant-access') }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(res => {
-            btn.disabled = false;
-            if (res.success) {
-                Swal.fire('¡Éxito!', res.message, 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', res.message || 'No se pudo otorgar el acceso.', 'error');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            Swal.fire('Error', 'Fallo en la comunicación con el servidor.', 'error');
+            fetch('{{ route('roles-permisos.grant-access') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                btn.disabled = false;
+                if (res.success) {
+                    Swal.fire('¡Éxito!', res.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', res.message || 'No se pudo otorgar el acceso.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                Swal.fire('Error', 'Fallo en la comunicación con el servidor.', 'error');
+            });
         });
-    });
+    }
 
     // Modal Editar Usuario
-    document.getElementById('editUserForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const userId = document.getElementById('editUserId').value;
-        const selectedPerms = Array.from(document.querySelectorAll('input[name="edit_permissions[]"]:checked')).map(cb => cb.value);
-        const selectedRoleEl = document.querySelector('input[name="edit_user_role"]:checked');
+    const editUserForm = document.getElementById('editUserForm');
+    if (editUserForm) {
+        editUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('editUserId').value;
+            const selectedPerms = Array.from(document.querySelectorAll('input[name="edit_permissions[]"]:checked')).map(cb => cb.value);
+            const selectedRoleEl = document.querySelector('input[name="edit_user_role"]:checked');
 
-        const data = {
-            role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
-            permissions: selectedPerms,
-            _token: '{{ csrf_token() }}'
-        };
+            const data = {
+                role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
+                permissions: selectedPerms,
+                _token: '{{ csrf_token() }}'
+            };
 
-        const btn = document.getElementById('btnSubmitEditUser');
-        btn.disabled = true;
+            const btn = document.getElementById('btnSubmitEditUser');
+            btn.disabled = true;
 
-        fetch(`{{ url('roles-permisos/user') }}/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(res => {
-            btn.disabled = false;
-            if (res.success) {
-                Swal.fire('¡Actualizado!', res.message, 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', res.message || 'Error al actualizar el usuario.', 'error');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            Swal.fire('Error', 'Error de conexión con el servidor.', 'error');
+            fetch(`{{ url('roles-permisos/user') }}/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                btn.disabled = false;
+                if (res.success) {
+                    Swal.fire('¡Actualizado!', res.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', res.message || 'Error al actualizar el usuario.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                Swal.fire('Error', 'Error de conexión con el servidor.', 'error');
+            });
         });
-    });
+    }
 
     // Revocar Acceso
     function revokeUserAccess(userId, userName) {
@@ -926,45 +961,48 @@
     }
 
     // Guardar Rol
-    document.getElementById('roleForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const roleId = document.getElementById('roleId').value;
-        const selectedPerms = Array.from(document.querySelectorAll('.role-perm-check:checked')).map(cb => cb.value);
+    const roleForm = document.getElementById('roleForm');
+    if (roleForm) {
+        roleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const roleId = document.getElementById('roleId').value;
+            const selectedPerms = Array.from(document.querySelectorAll('.role-perm-check:checked')).map(cb => cb.value);
 
-        const data = {
-            name: document.getElementById('roleName').value,
-            permissions: selectedPerms,
-            _token: '{{ csrf_token() }}'
-        };
+            const data = {
+                name: document.getElementById('roleName').value,
+                permissions: selectedPerms,
+                _token: '{{ csrf_token() }}'
+            };
 
-        const url = roleId ? `{{ url('roles-permisos/roles') }}/${roleId}` : '{{ route('roles-permisos.roles.store') }}';
-        const method = roleId ? 'PUT' : 'POST';
+            const url = roleId ? `{{ url('roles-permisos/roles') }}/${roleId}` : '{{ route('roles-permisos.roles.store') }}';
+            const method = roleId ? 'PUT' : 'POST';
 
-        const btn = document.getElementById('btnSubmitRole');
-        btn.disabled = true;
+            const btn = document.getElementById('btnSubmitRole');
+            btn.disabled = true;
 
-        fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(res => {
-            btn.disabled = false;
-            if (res.success) {
-                Swal.fire('¡Éxito!', res.message, 'success').then(() => {
-                    window.location.hash = 'tab-roles';
-                    location.reload();
-                });
-            } else {
-                Swal.fire('Error', res.message || 'Error al guardar el rol.', 'error');
-            }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            Swal.fire('Error', 'Error de red.', 'error');
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                btn.disabled = false;
+                if (res.success) {
+                    Swal.fire('¡Éxito!', res.message, 'success').then(() => {
+                        window.location.hash = 'tab-roles';
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', res.message || 'Error al guardar el rol.', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                Swal.fire('Error', 'Error de red.', 'error');
+            });
         });
-    });
+    }
 
     // Eliminar Rol
     function deleteRole(roleId, roleName) {
@@ -1003,30 +1041,33 @@
     }
 
     // Crear Permiso
-    document.getElementById('permissionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const data = {
-            name: document.getElementById('permissionName').value,
-            _token: '{{ csrf_token() }}'
-        };
+    const permissionForm = document.getElementById('permissionForm');
+    if (permissionForm) {
+        permissionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('permissionName').value,
+                _token: '{{ csrf_token() }}'
+            };
 
-        fetch('{{ route('roles-permisos.permissions.store') }}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(res => {
-            if (res.success) {
-                Swal.fire('¡Creado!', res.message, 'success').then(() => {
-                    window.location.hash = 'tab-permissions';
-                    location.reload();
-                });
-            } else {
-                Swal.fire('Error', res.message || 'Error al crear el permiso.', 'error');
-            }
+            fetch('{{ route('roles-permisos.permissions.store') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    Swal.fire('¡Creado!', res.message, 'success').then(() => {
+                        window.location.hash = 'tab-permissions';
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', res.message || 'Error al crear el permiso.', 'error');
+                }
+            });
         });
-    });
+    }
 
     // Sincronizar Permisos Base
     function syncSystemPermissions() {

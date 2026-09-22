@@ -110,6 +110,8 @@ class RolePermissionController extends Controller
      */
     public function grantAccess(Request $request)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('users.manage'), 403, 'No tiene permiso para otorgar accesos.');
+
         $request->validate([
             'user_id' => 'required|integer',
             'role' => 'required|string|exists:roles,name',
@@ -148,6 +150,8 @@ class RolePermissionController extends Controller
      */
     public function updateUserAccess(Request $request, User $user)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('users.manage'), 403, 'No tiene permiso para modificar accesos de usuarios.');
+
         if ($user->email === 'soporte@mapetzin.com') {
             return response()->json([
                 'success' => false,
@@ -187,6 +191,8 @@ class RolePermissionController extends Controller
      */
     public function revokeAccess(User $user)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('users.manage'), 403, 'No tiene permiso para revocar accesos de usuarios.');
+
         if ($user->email === 'soporte@mapetzin.com') {
             return response()->json([
                 'success' => false,
@@ -215,6 +221,8 @@ class RolePermissionController extends Controller
      */
     public function storeRole(Request $request)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('roles.manage'), 403, 'No tiene permiso para crear roles.');
+
         $request->validate([
             'name' => 'required|string|max:50|unique:roles,name',
             'permissions' => 'nullable|array',
@@ -247,6 +255,8 @@ class RolePermissionController extends Controller
      */
     public function updateRole(Request $request, Role $role)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('roles.manage'), 403, 'No tiene permiso para modificar roles o permisos.');
+
         $request->validate([
             'name' => 'required|string|max:50|unique:roles,name,' . $role->id,
             'permissions' => 'nullable|array',
@@ -276,6 +286,8 @@ class RolePermissionController extends Controller
      */
     public function destroyRole(Role $role)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('roles.manage'), 403, 'No tiene permiso para eliminar roles.');
+
         $systemRoles = ['Administrador', 'Director General', 'Usuario'];
         if (in_array($role->name, $systemRoles)) {
             return response()->json([
@@ -307,6 +319,8 @@ class RolePermissionController extends Controller
      */
     public function storePermission(Request $request)
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('roles.manage'), 403, 'No tiene permiso para registrar permisos.');
+
         $request->validate([
             'name' => 'required|string|max:60|unique:permissions,name',
         ], [
@@ -332,6 +346,7 @@ class RolePermissionController extends Controller
      */
     public function syncSystemPermissions()
     {
+        abort_unless(Auth::user()->email === 'soporte@mapetzin.com' || Auth::user()->can('roles.manage'), 403, 'No tiene permiso para sincronizar permisos del sistema.');
         try {
             $seeder = new \Database\Seeders\RolesAndPermissionsSeeder();
             $seeder->run();
