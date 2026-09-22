@@ -63,7 +63,7 @@ class AcuerdoTable extends Component
     public function render()
     {
         $query = Acuerdo::query()
-            ->with(['ultimoAvanceHoy', 'bitacoras'])
+            ->with('latestComment')
             ->where('estatus', '!=', 'finalizado')
             ->when($this->search, function ($q) {
                 $q->where(function ($inner) {

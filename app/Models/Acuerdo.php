@@ -79,6 +79,11 @@ class Acuerdo extends Model
         return $this->hasMany(AvanceDiario::class);
     }
 
+    public function ultimoAvanceHoy()
+    {
+        return $this->hasOne(AvanceDiario::class)->whereDate('fecha', \Carbon\Carbon::today())->latestOfMany();
+    }
+
     /**
      * Calcula los días hábiles (Lunes-Viernes) entre dos fechas
      */
