@@ -159,8 +159,171 @@
             color: #f87171;
             padding: 0.75rem;
             border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             font-size: 0.85rem;
+            text-align: left;
+        }
+
+        /* Attempts & Lockout Styles */
+        .attempts-card {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 0.85rem;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.25rem;
+            text-align: left;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .attempts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .attempts-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .attempts-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: rgba(245, 158, 11, 0.2);
+            color: #fde68a;
+            padding: 0.15rem 0.5rem;
+            border-radius: 1rem;
+        }
+
+        .attempts-bars {
+            display: flex;
+            gap: 0.35rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .attempt-pip {
+            flex: 1;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .attempt-pip.used {
+            background: #f59e0b;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+        }
+
+        .attempts-sub {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            margin: 0;
+        }
+
+        /* Lockout Timer Card */
+        .lockout-card {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.1) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 16px -4px rgba(239, 68, 68, 0.2);
+            animation: shakeAlert 0.4s ease-in-out;
+        }
+
+        @keyframes shakeAlert {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lockout-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.25rem 0.65rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .timer-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: monospace;
+            letter-spacing: 2px;
+            margin: 0.4rem 0;
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .timer-display i {
+            font-size: 1.5rem;
+            color: #f87171;
+            animation: pulseClock 1s infinite alternate;
+        }
+
+        @keyframes pulseClock {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.1); opacity: 1; }
+        }
+
+        .timer-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0.6rem 0;
+        }
+
+        .timer-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 100%);
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        .lockout-sub {
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            margin: 0;
+        }
+
+        .btn-login.btn-disabled {
+            background: #475569 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+            opacity: 0.7;
+        }
+
+        .form-control:disabled {
+            background: rgba(255, 255, 255, 0.02) !important;
+            color: #64748b !important;
+            cursor: not-allowed !important;
+            border-color: rgba(255, 255, 255, 0.05) !important;
         }
 
         /* Decorative Background */
@@ -218,21 +381,66 @@
                 </div>
             @endif
 
-            @if ($errors->any())
+            @if (session('lockout_seconds'))
+                <div class="lockout-card" id="lockoutCard">
+                    <div class="lockout-badge">
+                        <i class="fas fa-shield-virus"></i> Bloqueo de Seguridad
+                    </div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: #fecaca; margin-bottom: 0.25rem;">
+                        Acceso temporalmente restringido
+                    </div>
+                    <div class="timer-display">
+                        <i class="fas fa-stopwatch"></i>
+                        <span id="timerCountdown">00:00</span>
+                    </div>
+                    <div class="timer-progress">
+                        <div class="timer-progress-fill" id="timerFill"></div>
+                    </div>
+                    <p class="lockout-sub" id="lockoutInstruction">
+                        Podrá intentar ingresar nuevamente en cuanto el temporizador llegue a cero.
+                    </p>
+                </div>
+            @endif
+
+            @if (session('attempts') && !session('lockout_seconds'))
+                <div class="attempts-card">
+                    <div class="attempts-header">
+                        <div class="attempts-title">
+                            <i class="fas fa-exclamation-triangle"></i> Control de Intentos
+                        </div>
+                        <span class="attempts-tag">
+                            Intento {{ session('attempts') }} de {{ session('max_attempts', 5) }}
+                        </span>
+                    </div>
+                    <div class="attempts-bars">
+                        @for ($i = 1; $i <= session('max_attempts', 5); $i++)
+                            <div class="attempt-pip {{ $i <= session('attempts') ? 'used' : '' }}"></div>
+                        @endfor
+                    </div>
+                    <p class="attempts-sub">
+                        Te quedan <strong>{{ session('retries_left', 0) }}</strong> intento(s) antes de bloquear el acceso temporalmente.
+                    </p>
+                </div>
+            @endif
+
+            @if (isset($errors) && $errors->any())
                 <div class="error-message">
                     @foreach ($errors->all() as $error)
-                        {{ $error }}<br>
+                        <div style="display: flex; align-items: flex-start; gap: 0.4rem; margin-bottom: 0.25rem;">
+                            <i class="fas fa-info-circle" style="margin-top: 2px;"></i>
+                            <span>{{ $error }}</span>
+                        </div>
                     @endforeach
                 </div>
             @endif
 
-            <form action="{{ route('login.post') }}" method="POST">
+            <form action="{{ route('login.post') }}" method="POST" id="loginForm">
                 @csrf
                 <div class="form-group">
                     <label>Correo Electrónico</label>
                     <div class="input-wrapper">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" name="email" class="form-control" placeholder="ejemplo@mapetzin.com" required
+                        <input type="email" name="email" id="emailInput" class="form-control" placeholder="ejemplo@mapetzin.com" required
                             value="{{ old('email') }}">
                     </div>
                 </div>
@@ -246,11 +454,11 @@
                     </div>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-login">Ingresar al Sistema</button>
+                <button type="submit" class="btn-login" id="submitBtn">Ingresar al Sistema</button>
             </form>
 
             <div class="footer-links" style="margin-top: 2rem;">
@@ -258,6 +466,76 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let secondsRemaining = {{ (int) session('lockout_seconds', 0) }};
+            const totalLockoutSeconds = secondsRemaining;
+
+            const timerElement = document.getElementById('timerCountdown');
+            const timerFill = document.getElementById('timerFill');
+            const submitBtn = document.getElementById('submitBtn');
+            const emailInput = document.getElementById('emailInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const lockoutInstruction = document.getElementById('lockoutInstruction');
+
+            if (secondsRemaining > 0) {
+                // Deshabilitar botón e inputs mientras dure el bloqueo
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('btn-disabled');
+                    submitBtn.innerHTML = '<i class="fas fa-lock"></i> Acceso Bloqueado';
+                }
+                if (emailInput) emailInput.disabled = true;
+                if (passwordInput) passwordInput.disabled = true;
+
+                function formatTime(secs) {
+                    const m = Math.floor(secs / 60);
+                    const s = secs % 60;
+                    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                }
+
+                function tick() {
+                    if (timerElement) {
+                        timerElement.textContent = formatTime(secondsRemaining);
+                    }
+
+                    if (timerFill && totalLockoutSeconds > 0) {
+                        const pct = (secondsRemaining / totalLockoutSeconds) * 100;
+                        timerFill.style.width = pct + '%';
+                    }
+
+                    if (secondsRemaining <= 0) {
+                        clearInterval(intervalId);
+
+                        // Reactivar interfaz
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.classList.remove('btn-disabled');
+                            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar al Sistema';
+                        }
+                        if (emailInput) emailInput.disabled = false;
+                        if (passwordInput) {
+                            passwordInput.disabled = false;
+                            passwordInput.focus();
+                        }
+
+                        if (timerElement) timerElement.textContent = '00:00';
+                        if (timerFill) timerFill.style.width = '0%';
+
+                        if (lockoutInstruction) {
+                            lockoutInstruction.innerHTML = '<span style="color: #34d399; font-weight: 700;"><i class="fas fa-check-circle"></i> Bloqueo finalizado. Ya puede intentar ingresar de nuevo.</span>';
+                        }
+                    } else {
+                        secondsRemaining--;
+                    }
+                }
+
+                tick();
+                const intervalId = setInterval(tick, 1000);
+            }
+        });
+    </script>
 </body>
 
 </html>

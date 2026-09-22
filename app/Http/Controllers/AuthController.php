@@ -42,25 +42,69 @@ class AuthController extends Controller
         $password = $credentials['password'];
         $remember = $request->boolean('remember');
         $throttleKey = Str::transliterate($email . '|' . $request->ip());
+        $authCenterService = new AuthCenterService();
+        $maxAttempts = 5;
+        $lockoutSeconds = 60;
 
-        // 1. Verificar RateLimiter (máximo 5 intentos por minuto)
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $seconds = RateLimiter::availableIn($throttleKey);
-            return back()->withErrors([
-                'email' => "Demasiados intentos fallidos. Por favor espere {$seconds} segundos antes de intentar nuevamente.",
-            ])->onlyInput('email');
+        // 1. Verificar si está bloqueado en Auth Center
+        $userInAuth = $authCenterService->findUserByEmail($email);
+        if ($userInAuth && $userInAuth->locked_until && now()->lt($userInAuth->locked_until)) {
+            $seconds = now()->diffInSeconds($userInAuth->locked_until);
+            if ($seconds > 0) {
+                return back()
+                    ->with('lockout_seconds', $seconds)
+                    ->with('attempts', $userInAuth->failed_login_attempts ?? $maxAttempts)
+                    ->with('max_attempts', $maxAttempts)
+                    ->withErrors([
+                        'email' => "La cuenta está bloqueada temporalmente por seguridad. Por favor espere a que termine el temporizador.",
+                    ])
+                    ->onlyInput('email');
+            }
         }
 
-        $authCenterService = new AuthCenterService();
+        // 2. Verificar RateLimiter (máximo 5 intentos por minuto)
+        if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()
+                ->with('lockout_seconds', $seconds)
+                ->with('attempts', RateLimiter::attempts($throttleKey))
+                ->with('max_attempts', $maxAttempts)
+                ->withErrors([
+                    'email' => "Demasiados intentos fallidos. Su acceso está bloqueado temporalmente.",
+                ])
+                ->onlyInput('email');
+        }
+
         $authUser = $authCenterService->validateCredentials($email, $password);
 
         if (!$authUser) {
-            RateLimiter::hit($throttleKey, 60);
+            RateLimiter::hit($throttleKey, $lockoutSeconds);
+            $currentAttempts = RateLimiter::attempts($throttleKey);
+            $retriesLeft = max(0, $maxAttempts - $currentAttempts);
+
             $authCenterService->logLoginAttempt(null, $email, 'failed', 'Credenciales inválidas o cuenta desactivada', $request);
 
-            return back()->withErrors([
-                'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros o la cuenta está desactivada.',
-            ])->onlyInput('email');
+            if ($currentAttempts >= $maxAttempts) {
+                $seconds = RateLimiter::availableIn($throttleKey);
+                return back()
+                    ->with('lockout_seconds', $seconds)
+                    ->with('attempts', $currentAttempts)
+                    ->with('max_attempts', $maxAttempts)
+                    ->with('retries_left', 0)
+                    ->withErrors([
+                        'email' => "Ha superado el número máximo de intentos ({$maxAttempts} de {$maxAttempts}). Su acceso ha sido bloqueado temporalmente.",
+                    ])
+                    ->onlyInput('email');
+            }
+
+            return back()
+                ->with('attempts', $currentAttempts)
+                ->with('max_attempts', $maxAttempts)
+                ->with('retries_left', $retriesLeft)
+                ->withErrors([
+                    'email' => "Las credenciales no coinciden con nuestros registros. Intento {$currentAttempts} de {$maxAttempts} (te quedan {$retriesLeft} intento" . ($retriesLeft === 1 ? '' : 's') . ").",
+                ])
+                ->onlyInput('email');
         }
 
         // 2. Verificar acceso en user_system_access para agenda_acuerdos
