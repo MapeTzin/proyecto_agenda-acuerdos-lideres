@@ -1045,6 +1045,13 @@
 </script>
 
 <style>
+    .roles-container,
+    .roles-container *,
+    .roles-container *::before,
+    .roles-container *::after {
+        box-sizing: border-box !important;
+    }
+
     .roles-container {
         display: flex;
         flex-direction: column;
@@ -1282,7 +1289,7 @@
     }
 
     .filter-bar {
-        padding: 1.25rem 1.75rem;
+        padding: 1rem 1.75rem;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
@@ -1306,11 +1313,15 @@
         gap: 0.75rem;
         align-items: center;
         flex-wrap: wrap;
+        margin: 0;
     }
 
     .search-input-wrapper {
         position: relative;
-        min-width: 260px;
+        width: 280px;
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
     }
 
     .search-icon {
@@ -1320,17 +1331,22 @@
         transform: translateY(-50%);
         color: #94a3b8;
         font-size: 0.85rem;
+        pointer-events: none;
+        z-index: 2;
     }
 
     .form-control-custom {
-        width: 100%;
-        padding: 0.55rem 0.85rem 0.55rem 2.2rem;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        height: 38px;
+        padding: 0 0.85rem 0 2.2rem !important;
         border-radius: 0.5rem;
         border: 1px solid #cbd5e1;
         font-size: 0.85rem;
         background: #f8fafc;
         color: #1e293b;
         outline: none;
+        transition: all 0.2s ease;
     }
 
     .form-control-custom:focus {
@@ -1340,13 +1356,25 @@
     }
 
     .form-select-custom {
-        padding: 0.55rem 0.85rem;
+        box-sizing: border-box !important;
+        height: 38px;
+        padding: 0 2rem 0 0.85rem !important;
         border-radius: 0.5rem;
         border: 1px solid #cbd5e1;
         font-size: 0.85rem;
         background: #f8fafc;
         color: #1e293b;
         outline: none;
+        cursor: pointer;
+        min-width: 180px;
+        max-width: 220px;
+        transition: all 0.2s ease;
+    }
+
+    .form-select-custom:focus {
+        border-color: #6366f1;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
 
     .btn-clear-filter {
