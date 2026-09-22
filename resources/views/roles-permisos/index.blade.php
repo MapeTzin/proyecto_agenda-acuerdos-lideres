@@ -218,19 +218,25 @@
                                 @endif
                             </td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
-                                    <button onclick="openEditUserModal({{ json_encode($user) }}, {{ json_encode($user->roles->pluck('name')) }}, {{ json_encode($user->permissions->pluck('name')) }})"
-                                            class="btn-action-icon btn-action-edit" title="Editar Rol y Permisos">
-                                        <i class="fas fa-user-edit"></i>
-                                    </button>
+                                @if($user->email === 'soporte@mapetzin.com')
+                                    <div style="display: flex; justify-content: flex-end;">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #4338ca; background: #e0e7ff; padding: 0.35rem 0.75rem; border-radius: 9999px; border: 1px solid #c7d2fe;" title="Acceso total inmodificable">
+                                            <i class="fas fa-lock"></i> Permanente
+                                        </span>
+                                    </div>
+                                @else
+                                    <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+                                        <button onclick="openEditUserModal({{ json_encode($user) }}, {{ json_encode($user->roles->pluck('name')) }}, {{ json_encode($user->permissions->pluck('name')) }})"
+                                                class="btn-action-icon btn-action-edit" title="Editar Rol y Permisos">
+                                            <i class="fas fa-user-edit"></i>
+                                        </button>
 
-                                    @if($user->email !== 'soporte@mapetzin.com')
                                         <button onclick="revokeUserAccess({{ $user->id }}, '{{ addslashes($user->name) }}')"
                                                 class="btn-action-icon btn-action-revoke" title="Revocar Acceso al Sistema">
                                             <i class="fas fa-user-slash"></i>
                                         </button>
-                                    @endif
-                                </div>
+                                    </div>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -734,6 +740,16 @@
     }
 
     function openEditUserModal(user, roles, permissions) {
+        if (user.email === 'soporte@mapetzin.com') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Cuenta Protegida',
+                text: 'La cuenta del Super Administrador cuenta con acceso total por defecto y no puede ser modificada.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
         document.getElementById('editUserId').value = user.id;
         document.getElementById('editUserName').innerText = user.name;
         document.getElementById('editUserEmail').innerText = user.email;

@@ -23,6 +23,13 @@ class AcuerdoTable extends Component
         'selectedArea' => ['except' => '', 'as' => 'area']
     ];
 
+    public function mount()
+    {
+        if (!auth()->user()->can('acuerdos.view')) {
+            abort(403, 'No tiene permiso para ver el listado de acuerdos.');
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -56,7 +63,7 @@ class AcuerdoTable extends Component
     public function render()
     {
         $query = Acuerdo::query()
-            ->with('latestComment')
+            ->with(['ultimoAvanceHoy', 'bitacoras'])
             ->where('estatus', '!=', 'finalizado')
             ->when($this->search, function ($q) {
                 $q->where(function ($inner) {
@@ -75,7 +82,7 @@ class AcuerdoTable extends Component
             ->when($this->selectedArea, function ($q) {
                 $q->where('area', $this->selectedArea);
             })
-            ->when(!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com' && auth()->user()->email !== 'gerencia_serv_gobierno@lesli.com.mx', function ($q) {
+            ->when(!auth()->user()->hasRole(['Administrador', 'Director General']), function ($q) {
                 $q->where(function($query) {
                     $query->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(area)'), array_map('strtolower', auth()->user()->areas))
                           ->orWhereRaw('LOWER(responsable) = ?', [strtolower(auth()->user()->name)]);
@@ -117,7 +124,7 @@ class AcuerdoTable extends Component
 
             $sin_actualizar = Acuerdo::where('estatus', '!=', 'finalizado')
                 ->whereNotIn('area', $areasConAvanceHoy)
-                ->when(!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com' && auth()->user()->email !== 'gerencia_serv_gobierno@lesli.com.mx', function ($q) {
+                ->when(!auth()->user()->hasRole(['Administrador', 'Director General']), function ($q) {
                     $q->where(function($query) {
                         $query->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(area)'), array_map('strtolower', auth()->user()->areas))
                               ->orWhereRaw('LOWER(responsable) = ?', [strtolower(auth()->user()->name)]);

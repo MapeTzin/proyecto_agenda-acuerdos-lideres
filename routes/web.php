@@ -47,7 +47,10 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'force-password', 'has-access'])->group(function () {
     Route::get('/', function () {
-        return redirect()->route('dashboard');
+        if (auth()->user()->can('dashboard.view')) {
+            return redirect()->route('dashboard');
+        }
+        return redirect()->route('acuerdos.index');
     });
 
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
@@ -69,7 +72,7 @@ Route::middleware(['auth', 'force-password', 'has-access'])->group(function () {
     Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
     // Roles, Permisos y Gestión de Accesos Auth Center
-    Route::prefix('roles-permisos')->name('roles-permisos.')->group(function () {
+    Route::middleware('arochi-only')->prefix('roles-permisos')->name('roles-permisos.')->group(function () {
         Route::get('/', [RolePermissionController::class, 'index'])->name('index');
         Route::post('/grant-access', [RolePermissionController::class, 'grantAccess'])->name('grant-access');
         Route::put('/user/{user}', [RolePermissionController::class, 'updateUserAccess'])->name('user.update');

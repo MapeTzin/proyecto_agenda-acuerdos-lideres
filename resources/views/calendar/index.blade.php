@@ -12,7 +12,7 @@
                 </h2>
                 <p style="color: var(--secondary); margin-top: 0.25rem;">Gestión centralizada de eventos y compromisos</p>
             </div>
-            @if(auth()->user()->hasRole('Administrador') || auth()->user()->email === 'v.arochi@mapetzin.com')
+        @can('planeador.manage')
         <div style="display: flex; gap: 0.5rem;">
             <button class="btn" style="background: #ffffff; color: var(--secondary); border: 1px solid #cbd5e0;" onclick="document.getElementById('ics_file').click()">
                 <i class="fas fa-file-import"></i> Importar .ICS
@@ -25,7 +25,7 @@
                 <i class="fas fa-plus"></i> Nuevo Evento
             </button>
         </div>
-        @endif
+        @endcan
         </div>
 
         <div id="calendar" style="min-height: 700px;"></div>
@@ -273,19 +273,27 @@
                     day: 'Día'
                 },
                 events: '{{ route('events.fetch') }}',
-                editable: true,
-                selectable: true,
+                editable: {{ auth()->user()->can('planeador.manage') ? 'true' : 'false' }},
+                selectable: {{ auth()->user()->can('planeador.manage') ? 'true' : 'false' }},
                 select: function (info) {
+                    @can('planeador.manage')
                     openModal(info.startStr, info.endStr);
+                    @endcan
                 },
                 eventClick: function (info) {
+                    @can('planeador.manage')
                     editEvent(info.event);
+                    @endcan
                 },
                 eventDrop: function (info) {
+                    @can('planeador.manage')
                     updateEventResizeDrop(info.event);
+                    @endcan
                 },
                 eventResize: function (info) {
+                    @can('planeador.manage')
                     updateEventResizeDrop(info.event);
+                    @endcan
                 }
             });
             calendar.render();

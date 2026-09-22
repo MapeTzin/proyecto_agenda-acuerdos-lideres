@@ -22,6 +22,13 @@ class AcuerdoHistoricoTable extends Component
         'selectedArea' => ['except' => '', 'as' => 'area']
     ];
 
+    public function mount()
+    {
+        if (!auth()->user()->can('acuerdos.historico.view')) {
+            abort(403, 'No tiene permiso para consultar el histórico de acuerdos.');
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -57,7 +64,7 @@ class AcuerdoHistoricoTable extends Component
             ->when($this->selectedArea, function ($q) {
                 $q->where('area', $this->selectedArea);
             })
-            ->when(!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com', function ($q) {
+            ->when(!auth()->user()->hasRole(['Administrador', 'Director General']), function ($q) {
                 $q->where(function($query) {
                     $query->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(area)'), array_map('strtolower', auth()->user()->areas))
                           ->orWhereRaw('LOWER(responsable) = ?', [strtolower(auth()->user()->name)]);

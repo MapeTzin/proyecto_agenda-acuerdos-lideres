@@ -12,11 +12,13 @@ class AcuerdoController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->user()->can('acuerdos.view'), 403, 'No tiene permiso para ver el listado de acuerdos.');
         return view('acuerdos.index');
     }
 
     public function historico()
     {
+        abort_unless(auth()->user()->can('acuerdos.historico.view'), 403, 'No tiene permiso para ver el histórico de acuerdos.');
         return view('acuerdos.historico');
     }
 
@@ -25,6 +27,7 @@ class AcuerdoController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Acuerdo::class);
         $kpisByArea = $this->getKpisGroupedByArea();
         return view('acuerdos.create', compact('kpisByArea'));
     }
@@ -93,6 +96,8 @@ class AcuerdoController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', \App\Models\Acuerdo::class);
+
         $validated = $request->validate([
             'area' => 'required|string|max:255',
             'tipo_cuadrante' => 'required|in:1,2',
@@ -171,7 +176,7 @@ class AcuerdoController extends Controller
         if ($fechaCompromisoOriginal && $fechaCompromisoOriginal !== $fechaCompromisoNueva) {
             if (!$acuerdo->canChangeFechaCompromiso()) {
                 return back()->withErrors([
-                    'fecha_compromiso' => 'Solo los Super Administradores autorizados (soporte / v.arochi) pueden modificar la fecha compromiso.'
+                    'fecha_compromiso' => 'Solo los Administradores autorizados pueden modificar la fecha compromiso.'
                 ])->withInput();
             }
 
@@ -268,6 +273,7 @@ class AcuerdoController extends Controller
 
     public function export()
     {
+        abort_unless(auth()->user()->can('acuerdos.export'), 403, 'No tiene permiso para exportar acuerdos.');
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AcuerdosExport, 'acuerdos.xlsx');
     }
 }

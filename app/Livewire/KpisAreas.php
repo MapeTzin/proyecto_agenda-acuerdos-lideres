@@ -87,38 +87,11 @@ class KpisAreas extends Component
         $u = auth()->user();
         if (!$u) return false;
 
-        $email = strtolower($u->email ?? '');
-        if (in_array($email, [
-            'soporte@mapetzin.com',
-            'direccion@mapetzin.com',
-            'v.arochi@mapetzin.com',
-            'v.arochi@gmail.com',
-            'g.gonzalez@mapetzin.com'
-        ])) {
+        if ($u->email === 'soporte@mapetzin.com') {
             return true;
         }
 
-        $pos = strtolower($u->position ?? $u->area ?? '');
-        if (str_contains($pos, 'staff') || str_contains($pos, 'jefa de staff') || str_contains($pos, 'jefatura de staff')) {
-            return true;
-        }
-
-        if (isset($u->role_id) && $u->role_id == 3) {
-            return true;
-        }
-
-        $rol = strtolower($u->attributes['rol'] ?? '');
-        if ($rol === 'admin' || $rol === 'administrador') {
-            return true;
-        }
-
-        try {
-            if ($u->hasRole('administrador') || $u->hasRole('admin')) {
-                return true;
-            }
-        } catch (\Throwable $e) {}
-
-        return false;
+        return $u->hasRole(['Administrador', 'Director General']) || $u->can('kpis.manage');
     }
 
     public function getNormalizedUserArea(): string
@@ -148,6 +121,10 @@ class KpisAreas extends Component
 
     public function mount()
     {
+        if (!auth()->user()->can('kpis.view')) {
+            return redirect()->route('acuerdos.index');
+        }
+
         $this->isAdminUser = $this->checkIsAdmin();
         $this->userAreaName = $this->getNormalizedUserArea();
 

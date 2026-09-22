@@ -10,7 +10,7 @@ class Dashboard extends Component
 {
     public function mount()
     {
-        if (!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com' && auth()->user()->email !== 'gerencia_serv_gobierno@lesli.com.mx') {
+        if (!auth()->user()->can('dashboard.view')) {
             return redirect()->route('acuerdos.index');
         }
     }

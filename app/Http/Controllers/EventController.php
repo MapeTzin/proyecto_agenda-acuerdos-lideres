@@ -18,6 +18,7 @@ class EventController extends Controller
 {
     public function index()
     {
+        abort_unless(Auth::user()->can('planeador.view'), 403, 'No tiene permiso para consultar el Planeador.');
         $areas = Area::all();
         $users = User::all();
         return view('calendar.index', compact('areas', 'users'));
@@ -25,6 +26,7 @@ class EventController extends Controller
 
     public function import()
     {
+        abort_unless(Auth::user()->can('planeador.manage'), 403, 'No tiene permiso para importar eventos al Planeador.');
         try {
             $googleEvents = GoogleEvent::get();
             $count = 0;
@@ -70,6 +72,8 @@ class EventController extends Controller
 
     public function importICS(Request $request)
     {
+        abort_unless(Auth::user()->can('planeador.manage'), 403, 'No tiene permiso para importar eventos al Planeador.');
+
         $request->validate([
             'ics_file' => 'required|file',
         ]);
@@ -155,6 +159,8 @@ class EventController extends Controller
 
     public function fetch(Request $request)
     {
+        abort_unless(Auth::user()->can('planeador.view'), 403);
+
         $query = Event::with('multiple_areas');
 
         // Filter by date range if provided by FullCalendar
@@ -165,8 +171,8 @@ class EventController extends Controller
             ]);
         }
 
-        // Check if user has role Administrator
-        $isAdmin = Auth::user()->hasRole('Administrador') || Auth::user()->email === 'v.arochi@mapetzin.com';
+        // Check if user has role Administrator or Director General
+        $isAdmin = Auth::user()->hasRole(['Administrador', 'Director General']);
 
         $userAreas = Area::whereIn('name', Auth::user()->areas)->get();
         $userAreaIds = $userAreas->pluck('id')->toArray();
@@ -213,6 +219,8 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(Auth::user()->can('planeador.manage'), 403, 'No tiene permiso para crear eventos en el Planeador.');
+
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'start' => 'required|date',
@@ -260,7 +268,7 @@ class EventController extends Controller
 
     public function update(Request $request, Event $event)
     {
-        // Se remueve la autorización para permitir que todas las áreas puedan realizar modificaciones.
+        abort_unless(Auth::user()->can('planeador.manage'), 403, 'No tiene permiso para modificar eventos en el Planeador.');
 
         \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
 
@@ -305,7 +313,8 @@ class EventController extends Controller
 
     public function destroy(Event $event)
     {
-        // Se remueve la restricción de autorización para permitir que los usuarios puedan eliminar eventos
+        abort_unless(Auth::user()->can('planeador.manage'), 403, 'No tiene permiso para eliminar eventos del Planeador.');
+
         $event->delete();
 
         return response()->json(['success' => true]);

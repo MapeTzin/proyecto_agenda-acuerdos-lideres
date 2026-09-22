@@ -14,7 +14,7 @@
             <option value="detenido">Detenido</option>
         </select>
 
-        @if(auth()->user()->hasRole('Administrador') || auth()->user()->email === 'v.arochi@mapetzin.com' || auth()->user()->email === 'gerencia_serv_gobierno@lesli.com.mx')
+        @if(auth()->user()->hasRole(['Administrador', 'Director General']))
             <select wire:model.live="selectedArea"
                 style="padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; outline: none; font-family: inherit; background: white; cursor: pointer;">
                 <option value="">Todas las áreas</option>
@@ -41,7 +41,7 @@
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
             <div style="flex: 1;">
-                @if(auth()->user()->hasRole('Administrador') || auth()->user()->email === 'v.arochi@mapetzin.com' || auth()->user()->email === 'gerencia_serv_gobierno@lesli.com.mx')
+                @if(auth()->user()->hasRole(['Administrador', 'Director General']))
                     <p style="color: #92400e; margin: 0; font-size: 0.95rem; font-weight: 500;">
                         <strong>Atención:</strong> Las siguientes áreas aún no registran avances en sus acuerdos para el día de
                         hoy:
@@ -196,10 +196,12 @@
                                     title="Ver Detalle">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                @can('update', $acuerdo)
                                 <a href="{{ route('acuerdos.edit', $acuerdo) }}" class="btn"
                                     style="padding: 0.4rem; background: #f1f5f9; color: var(--info);" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                @endcan
                             </div>
                         </td>
                     </tr>

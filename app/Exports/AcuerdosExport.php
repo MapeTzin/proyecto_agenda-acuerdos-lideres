@@ -13,7 +13,7 @@ class AcuerdosExport implements FromCollection, WithHeadings, WithMapping
     {
         $query = Acuerdo::query();
 
-        if (!auth()->user()->hasRole('Administrador') && auth()->user()->email !== 'v.arochi@mapetzin.com' && auth()->user()->email !== 'gerencia_serv_gobierno@lesli.com.mx') {
+        if (!auth()->user()->hasRole(['Administrador', 'Director General'])) {
             $query->where(function($q) {
                 $q->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(area)'), array_map('strtolower', auth()->user()->areas))
                   ->orWhereRaw('LOWER(responsable) = ?', [strtolower(auth()->user()->name)]);

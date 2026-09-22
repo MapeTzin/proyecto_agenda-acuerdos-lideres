@@ -9,7 +9,7 @@
         <input type="text" wire:model.live="search" placeholder="Buscar en historial..."
             style="padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; outline: none; flex: 1; min-width: 250px;">
 
-        @if(auth()->user()->hasRole('Administrador') || auth()->user()->email === 'v.arochi@mapetzin.com' || auth()->user()->email === 'gerencia_serv_gobierno@lesli.com.mx')
+        @if(auth()->user()->hasRole(['Administrador', 'Director General']))
             <select wire:model.live="selectedArea"
                 style="padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; outline: none; font-family: inherit; background: white; cursor: pointer;">
                 <option value="">Todas las áreas</option>

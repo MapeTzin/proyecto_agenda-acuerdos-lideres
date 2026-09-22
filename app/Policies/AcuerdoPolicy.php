@@ -13,9 +13,7 @@ class AcuerdoPolicy
      */
     private function isAdmin(User $user): bool
     {
-        return $user->email === 'v.arochi@mapetzin.com' || 
-               $user->email === 'gerencia_serv_gobierno@lesli.com.mx' || 
-               $user->hasRole('Administrador');
+        return $user->email === 'soporte@mapetzin.com' || $user->hasRole('Administrador');
     }
 
     /**
@@ -39,7 +37,7 @@ class AcuerdoPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can('acuerdos.view');
     }
 
     /**
@@ -47,8 +45,14 @@ class AcuerdoPolicy
      */
     public function view(User $user, Acuerdo $acuerdo): bool
     {
-        if ($this->isAdmin($user) || $this->isDirector($user))
+        if ($this->isAdmin($user) || $this->isDirector($user)) {
             return true;
+        }
+
+        if (!$user->can('acuerdos.view')) {
+            return false;
+        }
+
         return $this->hasAccessToArea($user, $acuerdo->area) || strtolower($user->name) === strtolower($acuerdo->responsable);
     }
 
@@ -58,10 +62,11 @@ class AcuerdoPolicy
     public function create(User $user): bool
     {
         // El director no crea acuerdos, solo ve
-        if ($this->isDirector($user))
+        if ($this->isDirector($user)) {
             return false;
+        }
 
-        return true;
+        return $user->can('acuerdos.create');
     }
 
     /**
@@ -69,13 +74,15 @@ class AcuerdoPolicy
      */
     public function update(User $user, Acuerdo $acuerdo): bool
     {
-        if ($this->isAdmin($user))
+        if ($this->isAdmin($user)) {
             return true;
+        }
         
-        if ($this->isDirector($user))
-            return false; // Solo consulta
+        if ($this->isDirector($user) || !$user->can('acuerdos.edit')) {
+            return false; // Solo consulta o sin permiso
+        }
 
-        return true;
+        return $this->hasAccessToArea($user, $acuerdo->area) || strtolower($user->name) === strtolower($acuerdo->responsable);
     }
 
     /**
@@ -83,11 +90,13 @@ class AcuerdoPolicy
      */
     public function delete(User $user, Acuerdo $acuerdo): bool
     {
-        if ($this->isAdmin($user))
+        if ($this->isAdmin($user)) {
             return true;
+        }
 
-        if ($this->isDirector($user))
+        if ($this->isDirector($user) || !$user->can('acuerdos.delete')) {
             return false;
+        }
 
         return $this->hasAccessToArea($user, $acuerdo->area) || strtolower($user->name) === strtolower($acuerdo->responsable);
     }
@@ -97,11 +106,13 @@ class AcuerdoPolicy
      */
     public function restore(User $user, Acuerdo $acuerdo): bool
     {
-        if ($this->isAdmin($user))
+        if ($this->isAdmin($user)) {
             return true;
+        }
 
-        if ($this->isDirector($user))
+        if ($this->isDirector($user) || !$user->can('acuerdos.delete')) {
             return false;
+        }
 
         return $this->hasAccessToArea($user, $acuerdo->area) || strtolower($user->name) === strtolower($acuerdo->responsable);
     }
@@ -111,11 +122,13 @@ class AcuerdoPolicy
      */
     public function forceDelete(User $user, Acuerdo $acuerdo): bool
     {
-        if ($this->isAdmin($user))
+        if ($this->isAdmin($user)) {
             return true;
+        }
 
-        if ($this->isDirector($user))
+        if ($this->isDirector($user) || !$user->can('acuerdos.delete')) {
             return false;
+        }
 
         return $this->hasAccessToArea($user, $acuerdo->area) || strtolower($user->name) === strtolower($acuerdo->responsable);
     }

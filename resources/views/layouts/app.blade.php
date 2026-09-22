@@ -430,60 +430,76 @@
                 </div>
             </div>
         </div>
-        @if(auth()->user()->hasRole('Administrador') || auth()->user()->email === 'v.arochi@mapetzin.com' || auth()->user()->email === 'gerencia_serv_gobierno@lesli.com.mx')
+        @can('dashboard.view')
             <a href="{{ route('dashboard') }}" class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard Corporativo</span>
             </a>
+        @endcan
+
+        @can('seguimiento.view')
             <a href="{{ route('seguimiento.area') }}"
                 class="nav-item {{ request()->routeIs('seguimiento.area') ? 'active' : '' }}">
                 <i class="fas fa-layer-group"></i>
                 <span>Seguimiento Global</span>
             </a>
-        @endif
-        <a href="{{ route('kpis.areas') }}"
-            class="nav-item {{ request()->routeIs('kpis.areas') ? 'active' : '' }}">
-            <i class="fas fa-chart-pie"></i>
-            <span>KPI´s AREAS</span>
-        </a>
-        <a href="{{ route('acuerdos.index') }}"
-            class="nav-item {{ (request()->routeIs('acuerdos.index') && !request()->has('area')) ? 'active' : '' }}">
-            <i class="fas fa-list-check"></i>
-            <span>Mi Listado de Acuerdos</span>
-        </a>
-        @if(count(auth()->user()->areas) > 1)
-            <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                @foreach(auth()->user()->areas as $area)
-                    <a href="{{ route('acuerdos.index', ['area' => $area]) }}"
-                        class="nav-item {{ (request()->routeIs('acuerdos.index') && request()->get('area') === $area) ? 'active' : '' }}"
-                        style="padding: 0.5rem 0.75rem; font-size: 0.8rem; margin-bottom: 0; gap: 0.5rem;">
-                        <i class="fas fa-folder" style="font-size: 0.75rem; color: #818cf8;"></i>
-                        <span style="font-weight: 500;">{{ $area }}</span>
-                    </a>
-                @endforeach
-            </div>
-        @endif
-        <a href="{{ route('acuerdos.historico') }}"
-            class="nav-item {{ (request()->routeIs('acuerdos.historico') && !request()->has('area')) ? 'active' : '' }}">
-            <i class="fas fa-history"></i>
-            <span>Histórico de Acuerdos</span>
-        </a>
-        @if(count(auth()->user()->areas) > 1)
-            <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                @foreach(auth()->user()->areas as $area)
-                    <a href="{{ route('acuerdos.historico', ['area' => $area]) }}"
-                        class="nav-item {{ (request()->routeIs('acuerdos.historico') && request()->get('area') === $area) ? 'active' : '' }}"
-                        style="padding: 0.5rem 0.75rem; font-size: 0.8rem; margin-bottom: 0; gap: 0.5rem;">
-                        <i class="fas fa-folder" style="font-size: 0.75rem; color: #f43f5e;"></i>
-                        <span style="font-weight: 500;">{{ $area }}</span>
-                    </a>
-                @endforeach
-            </div>
-        @endif
-        <a href="{{ route('planeador') }}" class="nav-item {{ request()->routeIs('planeador') ? 'active' : '' }}">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Planeador</span>
-        </a>
+        @endcan
+
+        @can('kpis.view')
+            <a href="{{ route('kpis.areas') }}"
+                class="nav-item {{ request()->routeIs('kpis.areas') ? 'active' : '' }}">
+                <i class="fas fa-chart-pie"></i>
+                <span>KPI´s AREAS</span>
+            </a>
+        @endcan
+
+        @can('acuerdos.view')
+            <a href="{{ route('acuerdos.index') }}"
+                class="nav-item {{ (request()->routeIs('acuerdos.index') && !request()->has('area')) ? 'active' : '' }}">
+                <i class="fas fa-list-check"></i>
+                <span>Mi Listado de Acuerdos</span>
+            </a>
+            @if(count(auth()->user()->areas) > 1)
+                <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                    @foreach(auth()->user()->areas as $area)
+                        <a href="{{ route('acuerdos.index', ['area' => $area]) }}"
+                            class="nav-item {{ (request()->routeIs('acuerdos.index') && request()->get('area') === $area) ? 'active' : '' }}"
+                            style="padding: 0.5rem 0.75rem; font-size: 0.8rem; margin-bottom: 0; gap: 0.5rem;">
+                            <i class="fas fa-folder" style="font-size: 0.75rem; color: #818cf8;"></i>
+                            <span style="font-weight: 500;">{{ $area }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        @endcan
+
+        @can('acuerdos.historico.view')
+            <a href="{{ route('acuerdos.historico') }}"
+                class="nav-item {{ (request()->routeIs('acuerdos.historico') && !request()->has('area')) ? 'active' : '' }}">
+                <i class="fas fa-history"></i>
+                <span>Histórico de Acuerdos</span>
+            </a>
+            @if(count(auth()->user()->areas) > 1)
+                <div class="sidebar-submenu" style="margin-left: 1.5rem; margin-top: -0.25rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                    @foreach(auth()->user()->areas as $area)
+                        <a href="{{ route('acuerdos.historico', ['area' => $area]) }}"
+                            class="nav-item {{ (request()->routeIs('acuerdos.historico') && request()->get('area') === $area) ? 'active' : '' }}"
+                            style="padding: 0.5rem 0.75rem; font-size: 0.8rem; margin-bottom: 0; gap: 0.5rem;">
+                            <i class="fas fa-folder" style="font-size: 0.75rem; color: #f43f5e;"></i>
+                            <span style="font-weight: 500;">{{ $area }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        @endcan
+
+        @can('planeador.view')
+            <a href="{{ route('planeador') }}" class="nav-item {{ request()->routeIs('planeador') ? 'active' : '' }}">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Planeador</span>
+            </a>
+        @endcan
+
         @if(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->hasRole('Administrador') || auth()->user()->can('roles.manage') || auth()->user()->can('users.manage'))
             <a href="{{ route('roles-permisos.index') }}" class="nav-item {{ request()->routeIs('roles-permisos.*') || request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>

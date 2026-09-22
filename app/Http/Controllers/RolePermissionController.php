@@ -148,6 +148,13 @@ class RolePermissionController extends Controller
      */
     public function updateUserAccess(Request $request, User $user)
     {
+        if ($user->email === 'soporte@mapetzin.com') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No es posible modificar los roles o permisos de la cuenta de Super Administrador.',
+            ], 422);
+        }
+
         $request->validate([
             'role' => 'required|string|exists:roles,name',
             'permissions' => 'nullable|array',

@@ -173,9 +173,11 @@ class Acuerdo extends Model
         if (!$this->fecha_compromiso) return true;
         if ($this->estatus === 'finalizado') return false;
 
-        // Solo los super administradores pueden cambiar la fecha compromiso
-        if (auth()->check() && in_array(auth()->user()->email, ['soporte@mapetzin.com', 'v.arochi@mapetzin.com'])) {
-            return true;
+        if (auth()->check()) {
+            $user = auth()->user();
+            if ($user->email === 'soporte@mapetzin.com' || $user->hasRole('Administrador')) {
+                return true;
+            }
         }
 
         return false;

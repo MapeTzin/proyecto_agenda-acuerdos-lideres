@@ -38,6 +38,10 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if ($user->email === 'soporte@mapetzin.com') {
+            return response()->json(['success' => false, 'message' => 'No es posible modificar al Super Administrador.'], 422);
+        }
+
         $request->validate([
             'role' => 'required|string'
         ]);
@@ -51,6 +55,10 @@ class UserController extends Controller
 
     public function toggleStatus(User $user)
     {
+        if ($user->email === 'soporte@mapetzin.com') {
+            return response()->json(['success' => false, 'message' => 'No es posible desactivar al Super Administrador.'], 422);
+        }
+
         $user->syncRoles([]);
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
@@ -59,6 +67,10 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->email === 'soporte@mapetzin.com') {
+            return response()->json(['success' => false, 'message' => 'No es posible eliminar al Super Administrador.'], 422);
+        }
+
         $user->syncRoles([]);
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 

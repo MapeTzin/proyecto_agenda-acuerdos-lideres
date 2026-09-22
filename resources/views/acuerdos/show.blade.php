@@ -112,9 +112,11 @@
             </div>
 
             <div style="display: flex; gap: 1rem;">
+                @can('update', $acuerdo)
                 <button class="btn btn-primary" onclick="window.location.href='{{ route('acuerdos.edit', $acuerdo) }}'">
                     <i class="fas fa-edit"></i> Editar Acuerdo
                 </button>
+                @endcan
                 <button class="btn" style="background: var(--light); border: 1px solid #e2e8f0;"
                     onclick="window.location.href='{{ route('acuerdos.index') }}'">
                     Volver al Listado
@@ -133,6 +135,7 @@
                 </div>
 
                 <div style="padding: 1.5rem;">
+                    @can('update', $acuerdo)
                     {{-- Formulario para nuevo avance --}}
                     <form action="{{ route('acuerdos.comment', $acuerdo) }}" method="POST">
                         @csrf
@@ -145,6 +148,7 @@
                             <i class="fas fa-plus"></i> Registrar Avance
                         </button>
                     </form>
+                    @endcan
 
                     {{-- Historial de avances --}}
                     <div style="margin-top: 1.5rem; max-height: 450px; overflow-y: auto; padding-right: 0.25rem;">
