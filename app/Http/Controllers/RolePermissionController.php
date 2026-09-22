@@ -37,8 +37,10 @@ class RolePermissionController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        // 2. Consulta de usuarios locales / Auth Center
-        $query = User::with(['roles', 'permissions'])->where('is_active', 1);
+        // 2. Consulta de usuarios con acceso (únicamente usuarios con roles asignados)
+        $query = User::with(['roles', 'permissions'])
+            ->where('is_active', 1)
+            ->has('roles');
 
         if ($request->filled('search')) {
             $search = trim($request->search);
@@ -55,17 +57,7 @@ class RolePermissionController extends Controller
             });
         }
 
-        // Filtro por estado de acceso
-        if ($request->filled('access_status')) {
-            $status = $request->access_status;
-            if ($status === 'with_access') {
-                $query->has('roles');
-            } elseif ($status === 'without_access') {
-                $query->doesntHave('roles');
-            }
-        }
-
-        $users = $query->orderBy('name')->paginate(15)->withQueryString();
+        $users = $query->orderBy('name')->paginate(20)->withQueryString();
 
         // Anexar estado de auth center a cada usuario paginado
         foreach ($users as $user) {
@@ -90,13 +82,22 @@ class RolePermissionController extends Controller
             ->pluck('model_id')
             ->toArray();
 
+        $departments = DB::connection('mysql_auth')->table('departments')->pluck('name', 'id');
+
         $availableAuthUsers = AuthUser::where('is_active', 1)
             ->whereNotIn('id', $usersWithRolesIds)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'position', 'department_id']);
+            ->get(['id', 'name', 'email', 'position', 'department_id'])
+            ->map(function ($u) use ($departments) {
+                $u->department_name = $departments[$u->department_id] ?? 'Sin Departamento';
+                return $u;
+            });
+
+        $totalUsersWithAccess = User::where('is_active', 1)->has('roles')->count();
 
         return view('roles-permisos.index', compact(
             'users',
+            'totalUsersWithAccess',
             'roles',
             'permissions',
             'permissionsGrouped',
