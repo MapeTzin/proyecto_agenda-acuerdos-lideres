@@ -636,7 +636,9 @@
                             </td>
 
                             @php
-                                $kpiTarget = isset($kpi->default_target) && is_numeric($kpi->default_target) ? (float)$kpi->default_target : 95.0;
+                                $kpiGreen = $kpi->target_green ?? (isset($kpi->default_target) && is_numeric($kpi->default_target) ? (float)$kpi->default_target : 95.0);
+                                $kpiYellow = $kpi->target_yellow ?? 80.0;
+                                $kpiRed = $kpi->target_red ?? max(0, $kpiYellow - 0.01);
                             @endphp
 
                             <!-- Meta Legend Card -->
@@ -644,15 +646,15 @@
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                        <span style="color: #334155;">&ge; {{ number_format($kpiTarget, 0) }}%</span>
+                                        <span style="color: #334155;">&ge; {{ number_format($kpiGreen, 0) }}%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-                                        <span style="color: #334155;">80% - {{ number_format(max(80, $kpiTarget - 1), 0) }}%</span>
+                                        <span style="color: #334155;">{{ number_format($kpiYellow, 0) }}% - {{ number_format(max($kpiYellow, $kpiGreen - 1), 0) }}%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
-                                        <span style="color: #334155;">&lt; 80%</span>
+                                        <span style="color: #334155;">&lt; {{ number_format($kpiYellow, 0) }}%</span>
                                     </div>
                                 </div>
                             </td>
@@ -667,9 +669,9 @@
                                     $dotColor = '#94a3b8'; // default grey
                                     if ($val !== '-' && $val !== '' && is_numeric($val)) {
                                         $num = (float)$val;
-                                        if ($num >= $kpiTarget) {
+                                        if ($num >= $kpiGreen) {
                                             $dotColor = '#10b981'; // green
-                                        } elseif ($num >= 80.00) {
+                                        } elseif ($num >= $kpiYellow) {
                                             $dotColor = '#f59e0b'; // yellow
                                         } else {
                                             $dotColor = '#ef4444'; // red
@@ -680,7 +682,9 @@
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                         <input type="text"
                                             wire:model="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
-                                            data-target="{{ $kpiTarget }}"
+                                            data-target="{{ $kpiGreen }}"
+                                            data-warning="{{ $kpiYellow }}"
+                                            data-danger="{{ $kpiRed }}"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
                                         
@@ -703,19 +707,19 @@
 
                                 if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal)) {
                                     $num = (float)$mVal;
-                                    if ($num >= $kpiTarget) {
+                                    if ($num >= $kpiGreen) {
                                         $mDotColor = '#10b981'; // green
-                                        $mStatusText = 'En Meta (≥ ' . number_format($kpiTarget, 0) . '%)';
+                                        $mStatusText = 'En Meta (≥ ' . number_format($kpiGreen, 0) . '%)';
                                         $mStatusBg = '#d1fae5';
                                         $mStatusColor = '#065f46';
-                                    } elseif ($num >= 80.00) {
+                                    } elseif ($num >= $kpiYellow) {
                                         $mDotColor = '#f59e0b'; // yellow
-                                        $mStatusText = 'Prevención (80% - ' . number_format(max(80, $kpiTarget - 1), 0) . '%)';
+                                        $mStatusText = 'Prevención (' . number_format($kpiYellow, 0) . '% - ' . number_format(max($kpiYellow, $kpiGreen - 1), 0) . '%)';
                                         $mStatusBg = '#fef3c7';
                                         $mStatusColor = '#92400e';
                                     } else {
                                         $mDotColor = '#ef4444'; // red
-                                        $mStatusText = 'Atención Requerida (< 80%)';
+                                        $mStatusText = 'Atención Requerida (< ' . number_format($kpiYellow, 0) . '%)';
                                         $mStatusBg = '#fee2e2';
                                         $mStatusColor = '#991b1b';
                                     }
@@ -739,7 +743,7 @@
                                                     Total Mensual
                                                 </span>
                                                 <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">
-                                                    Meta: &ge; {{ number_format($kpiTarget, 0) }}%
+                                                    Meta: &ge; {{ number_format($kpiGreen, 0) }}%
                                                 </span>
                                             </div>
                                             <div style="font-weight: 800; color: #0f172a; font-size: 0.9rem; margin-bottom: 0.5rem;">
@@ -875,13 +879,13 @@
 
     <!-- Modal for Creating New KPI -->
     @if($showModal)
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; animation: fadeIn 0.2s ease-out;">
-            <div style="background: white; border-radius: 1rem; width: 100%; max-width: 500px; padding: 2rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; animation: fadeIn 0.2s ease-out; padding: 1rem;">
+            <div style="background: white; border-radius: 1rem; width: 100%; max-width: 560px; padding: 2rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); max-height: 92vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">
                         <i class="fas {{ $editingKpiId ? 'fa-pen-to-square' : 'fa-plus-circle' }}" style="color: #3b82f6; margin-right: 0.4rem;"></i> {{ $editingKpiId ? 'Editar KPI' : 'Agregar Nuevo KPI' }}
                     </h3>
-                    <button wire:click="closeModal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">
+                    <button wire:click="closeModal" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #64748b; line-height: 1;">
                         &times;
                     </button>
                 </div>
@@ -890,7 +894,17 @@
                     <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
                         Área de Negocio
                     </label>
-                    <input type="text" value="{{ !empty($selectedArea) ? $selectedArea : 'CONTABILIDAD' }}" readonly style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; background: #f8fafc; font-weight: 700; color: #475569;" />
+                    <select wire:model="newKpiArea" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; background: white; font-weight: 700; color: #1e293b; outline: none; cursor: pointer;">
+                        @foreach($officialAreas as $area)
+                            <option value="{{ $area }}">{{ $area }}</option>
+                        @endforeach
+                        @if(!empty($newKpiArea) && !in_array($newKpiArea, $officialAreas))
+                            <option value="{{ $newKpiArea }}">{{ $newKpiArea }}</option>
+                        @endif
+                    </select>
+                    @error('newKpiArea')
+                        <span style="color: #ef4444; font-size: 0.75rem; font-weight: 600;">{{ $message }}</span>
+                    @enderror
                 </div>
 
                 <div style="margin-bottom: 1.25rem;">
@@ -907,14 +921,78 @@
                     <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
                         Descripción
                     </label>
-                    <textarea wire:model="newKpiDescription" placeholder="Breve descripción del indicador..." rows="3" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-family: inherit; font-size: 0.85rem; color: #0f172a; outline: none;"></textarea>
+                    <textarea wire:model="newKpiDescription" placeholder="Breve descripción del indicador..." rows="2" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-family: inherit; font-size: 0.85rem; color: #0f172a; outline: none;"></textarea>
                 </div>
 
-                <div style="margin-bottom: 1.75rem;">
-                    <label style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
-                        Meta (%)
-                    </label>
-                    <input type="number" wire:model="newKpiTarget" min="0" max="100" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 0.5rem; font-weight: 700; color: #0f172a; outline: none;" />
+                <!-- Sección Semáforo de Metas y Porcentajes por Color -->
+                <div style="margin-bottom: 1.75rem; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.75rem; padding: 1.1rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <label style="font-weight: 800; font-size: 0.88rem; color: #0f172a; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                            <i class="fas fa-traffic-light" style="color: #3b82f6;"></i> Metas y Semáforo de Cumplimiento (%)
+                        </label>
+                        <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">
+                            Rangos porcentuales
+                        </span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                        <!-- Verde -->
+                        <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 0.5rem; padding: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.35rem;">
+                                <span style="width: 9px; height: 9px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 800; color: #065f46;">Verde (Meta)</span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Mínimo &ge; %</div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTarget" placeholder="95" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #10b981; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #065f46; text-align: center; outline: none;" />
+                                <span style="font-weight: 700; color: #065f46; font-size: 0.85rem;">%</span>
+                            </div>
+                            <div style="font-size: 0.65rem; color: #059669; font-weight: 600; margin-top: 0.35rem; text-align: center;">
+                                &ge; {{ $newKpiTarget ?: '95' }}%
+                            </div>
+                            @error('newKpiTarget')
+                                <span style="color: #ef4444; font-size: 0.7rem; font-weight: 600;">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <!-- Amarillo -->
+                        <div style="background: #ffffff; border: 1.5px solid #fde68a; border-radius: 0.5rem; padding: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.35rem;">
+                                <span style="width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 800; color: #92400e;">Amarillo</span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Mínimo &ge; %</div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTargetYellow" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #f59e0b; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #92400e; text-align: center; outline: none;" />
+                                <span style="font-weight: 700; color: #92400e; font-size: 0.85rem;">%</span>
+                            </div>
+                            <div style="font-size: 0.65rem; color: #b45309; font-weight: 600; margin-top: 0.35rem; text-align: center;">
+                                {{ $newKpiTargetYellow ?: '80' }}% - {{ max((float)($newKpiTargetYellow ?: 80), (float)($newKpiTarget ?: 95) - 1) }}%
+                            </div>
+                            @error('newKpiTargetYellow')
+                                <span style="color: #ef4444; font-size: 0.7rem; font-weight: 600;">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <!-- Rojo -->
+                        <div style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 0.5rem; padding: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.35rem;">
+                                <span style="width: 9px; height: 9px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 800; color: #991b1b;">Rojo</span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Menor a &lt; %</div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTargetRed" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #ef4444; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #991b1b; text-align: center; outline: none;" />
+                                <span style="font-weight: 700; color: #991b1b; font-size: 0.85rem;">%</span>
+                            </div>
+                            <div style="font-size: 0.65rem; color: #dc2626; font-weight: 600; margin-top: 0.35rem; text-align: center;">
+                                &lt; {{ $newKpiTargetRed ?: ($newKpiTargetYellow ?: '80') }}%
+                            </div>
+                            @error('newKpiTargetRed')
+                                <span style="color: #ef4444; font-size: 0.7rem; font-weight: 600;">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
@@ -939,6 +1017,7 @@
             if (!dot) return;
 
             const targetVal = parseFloat(el.getAttribute('data-target') || '95');
+            const warningVal = parseFloat(el.getAttribute('data-warning') || '80');
 
             if (val === '' || val === '-' || isNaN(val) || parseFloat(val) < 0) {
                 dot.style.backgroundColor = '#94a3b8'; // Grey
@@ -946,7 +1025,7 @@
                 const num = parseFloat(val);
                 if (num >= targetVal) {
                     dot.style.backgroundColor = '#10b981'; // Green
-                } else if (num >= 80) {
+                } else if (num >= warningVal) {
                     dot.style.backgroundColor = '#f59e0b'; // Yellow
                 } else {
                     dot.style.backgroundColor = '#ef4444'; // Red

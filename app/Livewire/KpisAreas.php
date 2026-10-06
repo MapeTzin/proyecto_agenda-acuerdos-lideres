@@ -80,7 +80,10 @@ class KpisAreas extends Component
     public $editingKpiId = null;
     public $newKpiName = '';
     public $newKpiDescription = '';
+    public $newKpiArea = 'CONTABILIDAD';
     public $newKpiTarget = 95;
+    public $newKpiTargetYellow = 80;
+    public $newKpiTargetRed = 80;
 
     public function checkIsAdmin(): bool
     {
@@ -391,7 +394,10 @@ class KpisAreas extends Component
         $this->editingKpiId = null;
         $this->newKpiName = '';
         $this->newKpiDescription = '';
+        $this->newKpiArea = !empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD';
         $this->newKpiTarget = 95;
+        $this->newKpiTargetYellow = 80;
+        $this->newKpiTargetRed = 80;
         $this->showModal = true;
     }
 
@@ -403,7 +409,25 @@ class KpisAreas extends Component
             $this->editingKpiId = $kpi->id;
             $this->newKpiName = $kpi->name;
             $this->newKpiDescription = $kpi->description;
-            $this->newKpiTarget = $kpi->default_target ?? 95;
+            $this->newKpiArea = !empty($kpi->category) ? $kpi->category : (!empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD');
+            $this->newKpiTarget = $kpi->default_target !== null ? (float)$kpi->default_target : 95;
+
+            // Load color ranges from kpi_ranges
+            $ranges = $db->table('kpi_ranges')->where('kpi_id', $kpiId)->get();
+            $greenRange = $ranges->firstWhere('color', 'green');
+            $yellowRange = $ranges->whereIn('color', ['yellow', 'orange'])->first();
+            $redRange = $ranges->firstWhere('color', 'red');
+
+            if ($greenRange && $greenRange->min_value !== null) {
+                $this->newKpiTarget = (float)$greenRange->min_value;
+            }
+            $this->newKpiTargetYellow = ($yellowRange && $yellowRange->min_value !== null) 
+                ? (float)$yellowRange->min_value 
+                : 80;
+            $this->newKpiTargetRed = ($redRange && $redRange->max_value !== null) 
+                ? round((float)$redRange->max_value, 0) 
+                : $this->newKpiTargetYellow;
+
             $this->showModal = true;
         }
     }
@@ -418,32 +442,40 @@ class KpisAreas extends Component
     {
         $this->validate([
             'newKpiName' => 'required|string|max:255',
+            'newKpiArea' => 'required|string|max:100',
+            'newKpiTarget' => 'required|numeric|min:0|max:100',
+            'newKpiTargetYellow' => 'required|numeric|min:0|max:100',
+            'newKpiTargetRed' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $db = DB::connection('sistema_tickets');
-        $target = is_numeric($this->newKpiTarget) ? (float)$this->newKpiTarget : 95.00;
+        $targetGreen = (float)$this->newKpiTarget;
+        $targetYellow = (float)$this->newKpiTargetYellow;
+        $targetRed = is_numeric($this->newKpiTargetRed) ? (float)$this->newKpiTargetRed : $targetYellow;
+        $areaCat = !empty($this->newKpiArea) ? $this->newKpiArea : (!empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD');
 
         if ($this->editingKpiId) {
             // Update existing KPI
             $db->table('kpis')->where('id', $this->editingKpiId)->update([
                 'name' => $this->newKpiName,
                 'description' => $this->newKpiDescription,
-                'default_target' => $target,
+                'category' => $areaCat,
+                'default_target' => $targetGreen,
                 'updated_at' => now(),
             ]);
+            $savedKpiId = $this->editingKpiId;
 
             session()->flash('success', 'KPI actualizado correctamente.');
         } else {
             // Create new KPI
-            $areaCat = !empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD';
             $code = strtoupper(substr($areaCat, 0, 4)) . '_' . time();
 
-            $kpiId = $db->table('kpis')->insertGetId([
+            $savedKpiId = $db->table('kpis')->insertGetId([
                 'name' => $this->newKpiName,
                 'code' => $code,
                 'description' => $this->newKpiDescription,
                 'category' => $areaCat,
-                'default_target' => $target,
+                'default_target' => $targetGreen,
                 'is_active' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -453,12 +485,12 @@ class KpisAreas extends Component
             $totalWeeks = count($this->weeksList);
             for ($w = 1; $w <= $totalWeeks; $w++) {
                 $db->table('kpi_results')->insert([
-                    'kpi_id' => $kpiId,
+                    'kpi_id' => $savedKpiId,
                     'year' => $this->selectedYear,
                     'month' => $this->selectedMonth,
                     'semana' => $w,
                     'value' => -1,
-                    'target_value' => $target,
+                    'target_value' => $targetGreen,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -467,12 +499,12 @@ class KpisAreas extends Component
             // Create default results for months 1 to 12 (monthly summary rows, semana = null)
             for ($m = 1; $m <= 12; $m++) {
                 $db->table('kpi_results')->insert([
-                    'kpi_id' => $kpiId,
+                    'kpi_id' => $savedKpiId,
                     'year' => $this->selectedYear,
                     'month' => $m,
                     'semana' => null,
                     'value' => -1,
-                    'target_value' => $target,
+                    'target_value' => $targetGreen,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -480,6 +512,41 @@ class KpisAreas extends Component
 
             session()->flash('success', 'Nuevo KPI agregado correctamente.');
         }
+
+        // Save ranges in kpi_ranges
+        $db->table('kpi_ranges')->where('kpi_id', $savedKpiId)->delete();
+        $db->table('kpi_ranges')->insert([
+            [
+                'kpi_id' => $savedKpiId,
+                'min_value' => $targetGreen,
+                'max_value' => 100.00,
+                'color' => 'green',
+                'label' => 'Óptimo',
+                'description' => "Cumplimiento óptimo / Meta alcanzada (>= {$targetGreen}%)",
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'kpi_id' => $savedKpiId,
+                'min_value' => $targetYellow,
+                'max_value' => max($targetYellow, $targetGreen - 0.01),
+                'color' => 'yellow',
+                'label' => 'Regular',
+                'description' => "Cumplimiento aceptable / Prevención ({$targetYellow}% - " . max($targetYellow, $targetGreen - 1) . "%)",
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'kpi_id' => $savedKpiId,
+                'min_value' => 0.00,
+                'max_value' => max(0, $targetRed - 0.01),
+                'color' => 'red',
+                'label' => 'Crítico',
+                'description' => "Desviación crítica / Atención requerida (< {$targetRed}%)",
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
 
         $this->showModal = false;
         $this->editingKpiId = null;
@@ -537,6 +604,11 @@ class KpisAreas extends Component
         $areasCount = count($officialAreas);
 
         $totalWeeks = count($this->weeksList);
+
+        $allKpiRanges = $db->table('kpi_ranges')
+            ->whereNotNull('kpi_id')
+            ->get()
+            ->groupBy('kpi_id');
 
         foreach ($officialAreas as $areaItem) {
             $kpisForArea = $db->table('kpis')
@@ -638,7 +710,14 @@ class KpisAreas extends Component
             $areaKpisCountWithVal = 0;
 
             foreach ($kpisForArea as $kpiObj) {
-                $targetVal = isset($kpiObj->default_target) && is_numeric($kpiObj->default_target) ? (float)$kpiObj->default_target : 95.0;
+                $ranges = $allKpiRanges->get($kpiObj->id);
+                $g = $ranges ? $ranges->firstWhere('color', 'green') : null;
+                $y = $ranges ? $ranges->whereIn('color', ['yellow', 'orange'])->first() : null;
+                $r = $ranges ? $ranges->firstWhere('color', 'red') : null;
+
+                $targetVal = ($g && $g->min_value !== null) ? (float)$g->min_value : ($kpiObj->default_target !== null ? (float)$kpiObj->default_target : 95.0);
+                $yellowVal = ($y && $y->min_value !== null) ? (float)$y->min_value : 80.0;
+                $redVal = ($r && $r->max_value !== null) ? (float)$r->max_value : 79.99;
 
                 // Query all results for this KPI in current month (both weekly and monthly summary)
                 $allKpiResults = $db->table('kpi_results')
@@ -672,7 +751,7 @@ class KpisAreas extends Component
                         $weeksValuesList[] = $wVal . '%';
                         if ($wVal >= $targetVal) {
                             $wColor = '#10b981';
-                        } elseif ($wVal >= 80.0) {
+                        } elseif ($wVal >= $yellowVal) {
                             $wColor = '#f59e0b';
                         } else {
                             $wColor = '#ef4444';
@@ -709,9 +788,9 @@ class KpisAreas extends Component
                     $kpisEnMeta++;
                     $areaKpisSum += $vJ;
                     $areaKpisCountWithVal++;
-                } elseif ($vJ >= 80.0) {
+                } elseif ($vJ >= $yellowVal) {
                     $dotColor = '#f59e0b';
-                    $statusText = 'Prevención (80% - 94%)';
+                    $statusText = 'Prevención (' . number_format($yellowVal, 0) . '% - ' . number_format(max($yellowVal, $targetVal - 1), 0) . '%)';
                     $statusBadgeBg = '#fef3c7';
                     $statusBadgeColor = '#92400e';
                     $vStr = $vJ . '%';
@@ -720,7 +799,7 @@ class KpisAreas extends Component
                     $areaKpisCountWithVal++;
                 } else {
                     $dotColor = '#ef4444';
-                    $statusText = 'Atención Requerida (< 80%)';
+                    $statusText = 'Atención Requerida (< ' . number_format($yellowVal, 0) . '%)';
                     $statusBadgeBg = '#fee2e2';
                     $statusBadgeColor = '#991b1b';
                     $vStr = $vJ . '%';
@@ -818,6 +897,22 @@ class KpisAreas extends Component
                 })
                 ->orderBy('id', 'asc')
                 ->get();
+
+            $kpiRanges = $db->table('kpi_ranges')
+                ->whereIn('kpi_id', $kpis->pluck('id'))
+                ->get()
+                ->groupBy('kpi_id');
+
+            foreach ($kpis as $kpi) {
+                $ranges = $kpiRanges->get($kpi->id);
+                $g = $ranges ? $ranges->firstWhere('color', 'green') : null;
+                $y = $ranges ? $ranges->whereIn('color', ['yellow', 'orange'])->first() : null;
+                $r = $ranges ? $ranges->firstWhere('color', 'red') : null;
+
+                $kpi->target_green = ($g && $g->min_value !== null) ? (float)$g->min_value : ($kpi->default_target !== null ? (float)$kpi->default_target : 95.0);
+                $kpi->target_yellow = ($y && $y->min_value !== null) ? (float)$y->min_value : 80.0;
+                $kpi->target_red = ($r && $r->max_value !== null) ? (float)$r->max_value : 79.99;
+            }
 
             $totalWeeks = count($this->weeksList);
             for ($w = 1; $w <= $totalWeeks; $w++) {
