@@ -944,7 +944,7 @@
                             </div>
                             <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Mínimo &ge; %</div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTarget" placeholder="95" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #10b981; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #065f46; text-align: center; outline: none;" />
+                                <input type="number" id="kpi-target-green" step="0.1" min="0" max="100" wire:model.live="newKpiTarget" oninput="onGreenTargetChange(this)" placeholder="95" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #10b981; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #065f46; text-align: center; outline: none;" />
                                 <span style="font-weight: 700; color: #065f46; font-size: 0.85rem;">%</span>
                             </div>
                             <div style="font-size: 0.65rem; color: #059669; font-weight: 600; margin-top: 0.35rem; text-align: center;">
@@ -963,7 +963,7 @@
                             </div>
                             <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Mínimo &ge; %</div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTargetYellow" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #f59e0b; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #92400e; text-align: center; outline: none;" />
+                                <input type="number" id="kpi-target-yellow" step="0.1" min="0" max="100" wire:model.live="newKpiTargetYellow" oninput="onYellowTargetChange(this)" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #f59e0b; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #92400e; text-align: center; outline: none;" />
                                 <span style="font-weight: 700; color: #92400e; font-size: 0.85rem;">%</span>
                             </div>
                             <div style="font-size: 0.65rem; color: #b45309; font-weight: 600; margin-top: 0.35rem; text-align: center;">
@@ -982,7 +982,7 @@
                             </div>
                             <div style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.4rem;">Menor a &lt; %</div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" step="0.1" min="0" max="100" wire:model.live="newKpiTargetRed" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #ef4444; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #991b1b; text-align: center; outline: none;" />
+                                <input type="number" id="kpi-target-red" step="0.1" min="0" max="100" wire:model.live="newKpiTargetRed" oninput="onRedTargetChange(this)" placeholder="80" style="width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #ef4444; border-radius: 0.35rem; font-weight: 800; font-size: 0.95rem; color: #991b1b; text-align: center; outline: none;" />
                                 <span style="font-weight: 700; color: #991b1b; font-size: 0.85rem;">%</span>
                             </div>
                             <div style="font-size: 0.65rem; color: #dc2626; font-weight: 600; margin-top: 0.35rem; text-align: center;">
@@ -1008,6 +1008,69 @@
     @endif
 
     <script>
+        function onGreenTargetChange(el) {
+            const green = parseFloat(el.value);
+            if (isNaN(green) || green <= 0) return;
+
+            const yellowInput = document.getElementById('kpi-target-yellow');
+            const redInput = document.getElementById('kpi-target-red');
+
+            if (yellowInput) {
+                let yellow = parseFloat(yellowInput.value) || 80;
+                if (yellow >= green || (green - yellow) < 5) {
+                    let newYellow = Math.max(0, Math.round(green * 0.85));
+                    if (newYellow >= green && green > 0) {
+                        newYellow = Math.max(0, green - 1);
+                    }
+                    yellowInput.value = newYellow;
+                    yellowInput.dispatchEvent(new Event('input'));
+
+                    if (redInput) {
+                        redInput.value = newYellow;
+                        redInput.dispatchEvent(new Event('input'));
+                    }
+                }
+            }
+        }
+
+        function onYellowTargetChange(el) {
+            const yellow = parseFloat(el.value);
+            if (isNaN(yellow)) return;
+
+            const greenInput = document.getElementById('kpi-target-green');
+            const redInput = document.getElementById('kpi-target-red');
+
+            if (greenInput) {
+                const green = parseFloat(greenInput.value) || 95;
+                if (yellow >= green && green > 0) {
+                    el.value = Math.max(0, green - 1);
+                    el.dispatchEvent(new Event('input'));
+                }
+            }
+
+            if (redInput) {
+                const red = parseFloat(redInput.value) || 80;
+                if (red > parseFloat(el.value)) {
+                    redInput.value = el.value;
+                    redInput.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+
+        function onRedTargetChange(el) {
+            const red = parseFloat(el.value);
+            if (isNaN(red)) return;
+
+            const yellowInput = document.getElementById('kpi-target-yellow');
+            if (yellowInput) {
+                const yellow = parseFloat(yellowInput.value) || 80;
+                if (red > yellow) {
+                    el.value = yellow;
+                    el.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+
         function updateKpiDot(el) {
             if (!el) return;
             const val = el.value.trim();
