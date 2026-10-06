@@ -635,16 +635,20 @@
                                 </div>
                             </td>
 
+                            @php
+                                $kpiTarget = isset($kpi->default_target) && is_numeric($kpi->default_target) ? (float)$kpi->default_target : 95.0;
+                            @endphp
+
                             <!-- Meta Legend Card -->
                             <td wire:key="kpi-meta-{{ $kpi->id }}-{{ $selectedYear }}-{{ $selectedMonth }}" style="padding: 1rem; vertical-align: top; text-align: center;">
                                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 0.7rem; font-weight: 600; display: inline-flex; flex-direction: column; gap: 4px; text-align: left;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                                        <span style="color: #334155;">&ge; 95%</span>
+                                        <span style="color: #334155;">&ge; {{ number_format($kpiTarget, 0) }}%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-                                        <span style="color: #334155;">80% - 94%</span>
+                                        <span style="color: #334155;">80% - {{ number_format(max(80, $kpiTarget - 1), 0) }}%</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
@@ -663,7 +667,7 @@
                                     $dotColor = '#94a3b8'; // default grey
                                     if ($val !== '-' && $val !== '' && is_numeric($val)) {
                                         $num = (float)$val;
-                                        if ($num >= 95.00) {
+                                        if ($num >= $kpiTarget) {
                                             $dotColor = '#10b981'; // green
                                         } elseif ($num >= 80.00) {
                                             $dotColor = '#f59e0b'; // yellow
@@ -676,7 +680,7 @@
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                                         <input type="text"
                                             wire:model="kpiValues.{{ $kpi->id }}.{{ $wNum }}.val"
-                                            data-target="95"
+                                            data-target="{{ $kpiTarget }}"
                                             oninput="updateKpiDot(this)"
                                             style="width: 52px; height: 34px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.85rem; color: #1e293b; background: white; outline: none; transition: border-color 0.2s;" />
                                         
@@ -699,14 +703,14 @@
 
                                 if ($mVal !== '-' && $mVal !== '' && is_numeric($mVal)) {
                                     $num = (float)$mVal;
-                                    if ($num >= 95.00) {
+                                    if ($num >= $kpiTarget) {
                                         $mDotColor = '#10b981'; // green
-                                        $mStatusText = 'En Meta (≥ 95%)';
+                                        $mStatusText = 'En Meta (≥ ' . number_format($kpiTarget, 0) . '%)';
                                         $mStatusBg = '#d1fae5';
                                         $mStatusColor = '#065f46';
                                     } elseif ($num >= 80.00) {
                                         $mDotColor = '#f59e0b'; // yellow
-                                        $mStatusText = 'Prevención (80% - 94%)';
+                                        $mStatusText = 'Prevención (80% - ' . number_format(max(80, $kpiTarget - 1), 0) . '%)';
                                         $mStatusBg = '#fef3c7';
                                         $mStatusColor = '#92400e';
                                     } else {
@@ -735,7 +739,7 @@
                                                     Total Mensual
                                                 </span>
                                                 <span style="font-size: 0.72rem; color: #64748b; font-weight: 700;">
-                                                    Meta: &ge; 95%
+                                                    Meta: &ge; {{ number_format($kpiTarget, 0) }}%
                                                 </span>
                                             </div>
                                             <div style="font-weight: 800; color: #0f172a; font-size: 0.9rem; margin-bottom: 0.5rem;">

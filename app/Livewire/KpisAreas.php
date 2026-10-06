@@ -293,6 +293,9 @@ class KpisAreas extends Component
             $countVal = 0;
             $hasAnyVal = false;
 
+            $kpiRec = $db->table('kpis')->where('id', $kpiId)->first();
+            $targetVal = ($kpiRec && isset($kpiRec->default_target) && is_numeric($kpiRec->default_target)) ? (float)$kpiRec->default_target : 95.00;
+
             for ($w = 1; $w <= $totalWeeks; $w++) {
                 $rawVal = $weeks[$w]['val'] ?? '-';
                 
@@ -334,7 +337,7 @@ class KpisAreas extends Component
                     ],
                     [
                         'value' => $numericVal,
-                        'target_value' => 95.00,
+                        'target_value' => $targetVal,
                         'period_date' => $dbDate,
                         'notes' => null,
                         'inicio_semana' => null,
@@ -356,7 +359,7 @@ class KpisAreas extends Component
             if ($existingMonthly) {
                 $db->table('kpi_results')->where('id', $existingMonthly->id)->update([
                     'value' => $monthlyVal,
-                    'target_value' => 95.00,
+                    'target_value' => $targetVal,
                     'period_date' => now()->format('Y-m-d'),
                     'notes' => $note,
                     'inicio_semana' => $startNote,
@@ -369,7 +372,7 @@ class KpisAreas extends Component
                     'month' => $this->selectedMonth,
                     'semana' => null,
                     'value' => $monthlyVal,
-                    'target_value' => 95.00,
+                    'target_value' => $targetVal,
                     'period_date' => now()->format('Y-m-d'),
                     'notes' => $note,
                     'inicio_semana' => $startNote,
@@ -400,7 +403,7 @@ class KpisAreas extends Component
             $this->editingKpiId = $kpi->id;
             $this->newKpiName = $kpi->name;
             $this->newKpiDescription = $kpi->description;
-            $this->newKpiTarget = $kpi->target;
+            $this->newKpiTarget = $kpi->default_target ?? 95;
             $this->showModal = true;
         }
     }
@@ -418,13 +421,14 @@ class KpisAreas extends Component
         ]);
 
         $db = DB::connection('sistema_tickets');
+        $target = is_numeric($this->newKpiTarget) ? (float)$this->newKpiTarget : 95.00;
 
         if ($this->editingKpiId) {
             // Update existing KPI
             $db->table('kpis')->where('id', $this->editingKpiId)->update([
                 'name' => $this->newKpiName,
                 'description' => $this->newKpiDescription,
-                'target' => $this->newKpiTarget,
+                'default_target' => $target,
                 'updated_at' => now(),
             ]);
 
@@ -439,13 +443,12 @@ class KpisAreas extends Component
                 'code' => $code,
                 'description' => $this->newKpiDescription,
                 'category' => $areaCat,
-                'target' => $this->newKpiTarget,
+                'default_target' => $target,
                 'is_active' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Create default results for month 8 (weeks 1 to 5)
             // Create default results for active month and weeks
             $totalWeeks = count($this->weeksList);
             for ($w = 1; $w <= $totalWeeks; $w++) {
@@ -455,7 +458,7 @@ class KpisAreas extends Component
                     'month' => $this->selectedMonth,
                     'semana' => $w,
                     'value' => -1,
-                    'target_value' => 95.00,
+                    'target_value' => $target,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -469,7 +472,7 @@ class KpisAreas extends Component
                     'month' => $m,
                     'semana' => null,
                     'value' => -1,
-                    'target_value' => $this->newKpiTarget,
+                    'target_value' => $target,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -635,7 +638,7 @@ class KpisAreas extends Component
             $areaKpisCountWithVal = 0;
 
             foreach ($kpisForArea as $kpiObj) {
-                $targetVal = 95.0;
+                $targetVal = isset($kpiObj->default_target) && is_numeric($kpiObj->default_target) ? (float)$kpiObj->default_target : 95.0;
 
                 // Query all results for this KPI in current month (both weekly and monthly summary)
                 $allKpiResults = $db->table('kpi_results')
