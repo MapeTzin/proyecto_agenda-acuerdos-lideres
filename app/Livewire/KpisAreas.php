@@ -438,69 +438,6 @@ class KpisAreas extends Component
         $this->editingKpiId = null;
     }
 
-    public function updatedNewKpiTarget($val)
-    {
-        if (!is_numeric($val) || (float)$val <= 0) {
-            return;
-        }
-
-        $green = (float)$val;
-        if ($green > 100) {
-            $this->newKpiTarget = 100;
-            $green = 100;
-        }
-
-        $currentYellow = is_numeric($this->newKpiTargetYellow) ? (float)$this->newKpiTargetYellow : 80;
-
-        // Si el porcentaje verde baja y alcanza o queda a menos de 5 puntos del amarillo,
-        // ajustamos el amarillo proporcionalmente (~15% debajo del verde) para no perder la lógica de rangos.
-        if ($currentYellow >= $green || ($green - $currentYellow) < 5) {
-            $newYellow = max(0, round($green * 0.85, 0));
-            if ($newYellow >= $green && $green > 0) {
-                $newYellow = max(0, $green - 1);
-            }
-            $this->newKpiTargetYellow = $newYellow;
-            $currentYellow = $newYellow;
-        }
-
-        $currentRed = is_numeric($this->newKpiTargetRed) ? (float)$this->newKpiTargetRed : $currentYellow;
-        if ($currentRed > $currentYellow) {
-            $this->newKpiTargetRed = $currentYellow;
-        }
-    }
-
-    public function updatedNewKpiTargetYellow($val)
-    {
-        if (!is_numeric($val)) {
-            return;
-        }
-        $yellow = (float)$val;
-        $green = is_numeric($this->newKpiTarget) ? (float)$this->newKpiTarget : 95;
-
-        if ($yellow >= $green && $green > 0) {
-            $this->newKpiTargetYellow = max(0, $green - 1);
-            $yellow = $this->newKpiTargetYellow;
-        }
-
-        $red = is_numeric($this->newKpiTargetRed) ? (float)$this->newKpiTargetRed : $yellow;
-        if ($red > $yellow) {
-            $this->newKpiTargetRed = $yellow;
-        }
-    }
-
-    public function updatedNewKpiTargetRed($val)
-    {
-        if (!is_numeric($val)) {
-            return;
-        }
-        $red = (float)$val;
-        $yellow = is_numeric($this->newKpiTargetYellow) ? (float)$this->newKpiTargetYellow : 80;
-
-        if ($red > $yellow) {
-            $this->newKpiTargetRed = $yellow;
-        }
-    }
-
     public function saveNewKpi()
     {
         $this->validate([
@@ -514,13 +451,7 @@ class KpisAreas extends Component
         $db = DB::connection('sistema_tickets');
         $targetGreen = (float)$this->newKpiTarget;
         $targetYellow = (float)$this->newKpiTargetYellow;
-        if ($targetYellow >= $targetGreen && $targetGreen > 0) {
-            $targetYellow = max(0, $targetGreen - 1);
-        }
         $targetRed = is_numeric($this->newKpiTargetRed) ? (float)$this->newKpiTargetRed : $targetYellow;
-        if ($targetRed > $targetYellow) {
-            $targetRed = $targetYellow;
-        }
         $areaCat = !empty($this->newKpiArea) ? $this->newKpiArea : (!empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD');
 
         if ($this->editingKpiId) {
