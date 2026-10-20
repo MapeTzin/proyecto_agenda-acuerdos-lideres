@@ -158,7 +158,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('password.update') }}" method="POST">
+            <form action="{{ route('password.change.post') }}" method="POST">
                 @csrf
                 <div class="form-group">
                     <label for="password">Nueva Contraseña</label>

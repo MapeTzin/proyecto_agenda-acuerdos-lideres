@@ -88,8 +88,3 @@ Route::middleware(['auth', 'force-password', 'has-access'])->group(function () {
     Route::post('/acuerdos/{acuerdo}/comment', [AcuerdoController::class, 'comment'])->name('acuerdos.comment');
     Route::get('/export-acuerdos', [AcuerdoController::class, 'export'])->name('acuerdos.export');
 });
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/change-password', [AuthController::class, 'showChangePassword'])->name('password.change');
-    Route::post('/change-password', [AuthController::class, 'updatePassword'])->name('password.update');
-});
