@@ -45,9 +45,14 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
 
-        $this->renderable(function (TokenMismatchException $e, $request) {
+    public function render($request, Throwable $e)
+    {
+        if ($e instanceof TokenMismatchException || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException && $e->getStatusCode() === 419)) {
             return redirect()->route('login')->with('status', 'Tu sesión o formulario ha expirado por inactividad. Por favor, intenta ingresar de nuevo.');
-        });
+        }
+
+        return parent::render($request, $e);
     }
 }
