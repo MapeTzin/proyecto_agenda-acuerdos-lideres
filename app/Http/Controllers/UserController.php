@@ -27,11 +27,17 @@ class UserController extends Controller
 
         $request->validate([
             'user_id' => 'required',
-            'role' => 'required|string'
+            'role' => 'required|string',
+            'areas' => 'nullable|array',
+            'areas.*' => 'integer|exists:areas,id',
         ]);
 
         $user = User::findOrFail($request->user_id);
         $user->syncRoles([$request->role]);
+
+        if ($request->has('areas')) {
+            $user->additionalAreas()->sync($request->areas ?? []);
+        }
 
         (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
@@ -47,10 +53,16 @@ class UserController extends Controller
         }
 
         $request->validate([
-            'role' => 'required|string'
+            'role' => 'required|string',
+            'areas' => 'nullable|array',
+            'areas.*' => 'integer|exists:areas,id',
         ]);
 
         $user->syncRoles([$request->role]);
+
+        if ($request->has('areas')) {
+            $user->additionalAreas()->sync($request->areas ?? []);
+        }
 
         (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
@@ -66,6 +78,7 @@ class UserController extends Controller
         }
 
         $user->syncRoles([]);
+        $user->additionalAreas()->detach();
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
         return response()->json(['success' => true, 'is_active' => false]);
@@ -80,6 +93,7 @@ class UserController extends Controller
         }
 
         $user->syncRoles([]);
+        $user->additionalAreas()->detach();
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
         return response()->json(['success' => true]);

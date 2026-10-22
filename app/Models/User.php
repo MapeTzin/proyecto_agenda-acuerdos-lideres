@@ -54,43 +54,29 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    protected $appends = ['has_access'];
+    protected $appends = ['has_access', 'additional_area_ids'];
 
     protected static $departmentCache = [];
 
-    public function getAreaAttribute()
+    public static function mapDepartmentToArea(?string $rawDepartment, ?string $email = null): string
     {
-        // Email-specific overrides
-        if ($this->email === 'produccion@mapetzin.com') { // Marlon
+        if ($email === 'produccion@mapetzin.com') { // Marlon
             return 'COMERCIAL';
         }
-        if ($this->email === 's.gema@mapetzin.com') {
+        if ($email === 's.gema@mapetzin.com') {
             return 'ASIS ADM';
         }
-
-        if ($this->email === 's.arias@mapetzin.com') {
+        if ($email === 's.arias@mapetzin.com') {
             return 'CAPITAL HUMANO';
         }
-
-        if ($this->email === 'direccion@mapetzin.com') {
+        if ($email === 'direccion@mapetzin.com') {
             return 'SIN ÁREA';
         }
 
-        $rawArea = $this->attributes['department'] ?? $this->attributes['departamento'] ?? null;
-        
-        if (!$rawArea && !empty($this->department_id)) {
-            if (!isset(self::$departmentCache[$this->department_id])) {
-                self::$departmentCache[$this->department_id] = \Illuminate\Support\Facades\DB::connection('mysql_auth')->table('departments')
-                    ->where('id', $this->department_id)
-                    ->value('name');
-            }
-            $rawArea = self::$departmentCache[$this->department_id];
+        if (!$rawDepartment) {
+            return 'Sin Área';
         }
 
-        if (!$rawArea) {
-            $rawArea = 'Sin Área';
-        }
-        
         $map = [
             'Adquisiciones y Servicios' => 'ADQUISICIONES',
             'Almacen' => 'ALMACEN',
@@ -111,15 +97,69 @@ class User extends Authenticatable
             'Documental' => 'ASIS ADM',
         ];
 
-        return $map[$rawArea] ?? strtoupper($rawArea);
+        return $map[$rawDepartment] ?? strtoupper($rawDepartment);
+    }
+
+    public function getAreaAttribute()
+    {
+        if ($this->email === 'produccion@mapetzin.com') { // Marlon
+            return 'COMERCIAL';
+        }
+        if ($this->email === 's.gema@mapetzin.com') {
+            return 'ASIS ADM';
+        }
+        if ($this->email === 's.arias@mapetzin.com') {
+            return 'CAPITAL HUMANO';
+        }
+        if ($this->email === 'direccion@mapetzin.com') {
+            return 'SIN ÁREA';
+        }
+
+        $rawArea = $this->attributes['department'] ?? $this->attributes['departamento'] ?? null;
+        
+        if (!$rawArea && !empty($this->department_id)) {
+            if (!isset(self::$departmentCache[$this->department_id])) {
+                self::$departmentCache[$this->department_id] = \Illuminate\Support\Facades\DB::connection('mysql_auth')->table('departments')
+                    ->where('id', $this->department_id)
+                    ->value('name');
+            }
+            $rawArea = self::$departmentCache[$this->department_id];
+        }
+
+        return self::mapDepartmentToArea($rawArea, $this->email);
+    }
+
+    public function additionalAreas()
+    {
+        return $this->belongsToMany(Area::class, 'user_areas', 'user_id', 'area_id')->withTimestamps();
+    }
+
+    public function getAdditionalAreaIdsAttribute(): array
+    {
+        if ($this->relationLoaded('additionalAreas')) {
+            return $this->additionalAreas->pluck('id')->toArray();
+        }
+        return $this->additionalAreas()->pluck('area_id')->toArray();
     }
 
     public function getAreasAttribute()
     {
-        if ($this->email === 's.arias@mapetzin.com') {
-            return ['CAPITAL HUMANO', 'CULTURA ORGANIZACIONAL'];
+        $areas = [];
+        $primary = $this->area;
+        if ($primary && $primary !== 'SIN ÁREA' && $primary !== 'Sin Área') {
+            $areas[] = $primary;
         }
-        return [$this->area];
+
+        // Áreas adicionales configuradas para este usuario
+        if ($this->relationLoaded('additionalAreas')) {
+            $additional = $this->additionalAreas->pluck('name')->toArray();
+        } else {
+            $additional = $this->additionalAreas()->pluck('name')->toArray();
+        }
+
+        $merged = array_unique(array_merge($areas, $additional));
+
+        return !empty($merged) ? array_values($merged) : [$primary];
     }
 
     public function getPositionAttribute()

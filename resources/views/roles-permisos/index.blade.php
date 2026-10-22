@@ -193,9 +193,23 @@
                             </td>
                             <td style="font-size: 0.85rem; color: #475569;">{{ $user->email }}</td>
                             <td>
-                                <span class="badge-area">
-                                    {{ implode(' y ', $user->areas) }}
-                                </span>
+                                <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start;">
+                                    <span class="badge-area" style="background: {{ $user->area_color }}15; color: {{ $user->area_color }}; border: 1px solid {{ $user->area_color }}40;" title="Área predefinida de su departamento">
+                                        <i class="fas fa-building" style="font-size: 0.7rem;"></i> {{ $user->area }} <small style="font-size: 0.68rem; opacity: 0.85; font-weight: 700;">(Predefinida)</small>
+                                    </span>
+                                    @php
+                                        $extraAreas = $user->additionalAreas->filter(fn($a) => strtoupper($a->name) !== strtoupper($user->area));
+                                    @endphp
+                                    @if($extraAreas->count() > 0)
+                                        <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                            @foreach($extraAreas as $extra)
+                                                <span class="badge-extra-area" title="Acceso adicional concedido a otra área">
+                                                    <i class="fas fa-plus" style="font-size: 0.6rem; color: #6366f1;"></i> {{ $extra->name }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                             </td>
                             <td>
                                 <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
@@ -234,8 +248,8 @@
                                     </div>
                                 @elseif(auth()->user()->email === 'soporte@mapetzin.com' || auth()->user()->can('users.manage'))
                                     <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
-                                        <button onclick="openEditUserModal({{ json_encode($user) }}, {{ json_encode($user->roles->pluck('name')) }}, {{ json_encode($user->permissions->pluck('name')) }})"
-                                                class="btn-action-icon btn-action-edit" title="Editar Rol y Permisos">
+                                        <button onclick="openEditUserModal({{ json_encode($user) }}, {{ json_encode($user->roles->pluck('name')) }}, {{ json_encode($user->permissions->pluck('name')) }}, {{ json_encode($user->additionalAreas->pluck('id')) }})"
+                                                class="btn-action-icon btn-action-edit" title="Editar Rol, Permisos y Áreas">
                                             <i class="fas fa-user-edit"></i>
                                         </button>
 
@@ -456,11 +470,48 @@
                     <select id="modalGrantUserId" class="form-control-custom" required style="width: 100%;">
                         <option value="">-- Selecciona un colaborador --</option>
                         @foreach($availableAuthUsers as $u)
-                            <option value="{{ $u->id }}">
+                            <option value="{{ $u->id }}" data-default-area="{{ $u->default_area }}">
                                 {{ $u->name }} — {{ $u->department_name }} | {{ $u->position ?? 'Sin Puesto' }} ({{ $u->email }})
                             </option>
                         @endforeach
                     </select>
+                </div>
+
+                <!-- Configuración de Áreas de Acceso -->
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label class="form-label" style="margin: 0;">
+                            <i class="fas fa-building" style="color: #6366f1; margin-right: 0.3rem;"></i> Configuración de Áreas de Acceso
+                        </label>
+                        <span style="font-size: 0.72rem; color: #64748b;">Área base predefinida + áreas adicionales permitidas</span>
+                    </div>
+
+                    <!-- Banner Área Predefinida -->
+                    <div id="grantPredefinedAreaContainer" class="predefined-area-banner">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-lock" style="color: #4f46e5; font-size: 0.85rem;"></i>
+                            <span style="font-size: 0.8rem; color: #475569;">Área Predeterminada:</span>
+                            <strong id="grantPredefinedAreaName" style="font-size: 0.85rem; color: #1e293b;">Selecciona un colaborador</strong>
+                        </div>
+                        <span class="badge-predefined">Predefinida</span>
+                    </div>
+
+                    <!-- Selector de Áreas Adicionales -->
+                    <div style="margin-bottom: 0.35rem;">
+                        <span style="font-size: 0.75rem; font-weight: 600; color: #475569;">
+                            Permitir ver y gestionar acuerdos de otra(s) área(s) (Opcional):
+                        </span>
+                    </div>
+                    <div class="areas-selector-box">
+                        @foreach($allAreas as $area)
+                            <label class="area-checkbox-item grant-area-item" data-area-id="{{ $area->id }}" data-area-name="{{ $area->name }}">
+                                <input type="checkbox" name="grant_areas[]" value="{{ $area->id }}" class="grant-area-check">
+                                <span class="area-color-dot" style="background: {{ $area->color ?? '#6366f1' }};"></span>
+                                <span class="area-item-name">{{ $area->name }}</span>
+                                <span class="area-predefined-tag" style="display: none; margin-left: auto; font-size: 0.65rem; background: #e0e7ff; color: #4338ca; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-weight: 600;">(Base)</span>
+                            </label>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -519,7 +570,7 @@
     <div class="modal-dialog modal-dialog-lg">
         <div class="modal-header">
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b;">
-                <i class="fas fa-user-edit" style="color: #6366f1; margin-right: 0.4rem;"></i> Editar Rol y Permisos del Colaborador
+                <i class="fas fa-user-edit" style="color: #6366f1; margin-right: 0.4rem;"></i> Editar Rol, Permisos y Áreas del Colaborador
             </h3>
             <button type="button" class="modal-close-btn" onclick="closeEditUserModal()">&times;</button>
         </div>
@@ -529,10 +580,52 @@
             <div class="modal-body">
                 <div class="user-summary-card">
                     <div class="user-summary-avatar" id="editUserAvatar">US</div>
-                    <div>
-                        <div style="font-size: 1rem; font-weight: 700; color: #1e293b;" id="editUserName">Nombre</div>
-                        <div style="font-size: 0.8rem; color: #64748b;" id="editUserEmail">correo@mapetzin.com</div>
-                        <div style="font-size: 0.75rem; color: #475569;" id="editUserPosition">Puesto</div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
+                            <div>
+                                <div style="font-size: 1rem; font-weight: 700; color: #1e293b;" id="editUserName">Nombre</div>
+                                <div style="font-size: 0.8rem; color: #64748b;" id="editUserEmail">correo@mapetzin.com</div>
+                                <div style="font-size: 0.75rem; color: #475569;" id="editUserPosition">Puesto</div>
+                            </div>
+                            <span class="badge-predefined" title="Área predefinida del usuario">
+                                <i class="fas fa-lock"></i> <span id="editUserPredefinedAreaBadge">-</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Áreas de Acceso -->
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label class="form-label" style="margin: 0;">
+                            <i class="fas fa-building" style="color: #6366f1; margin-right: 0.3rem;"></i> Áreas con Acceso
+                        </label>
+                        <span style="font-size: 0.72rem; color: #64748b;">Área base predefinida; activa otras áreas para que este encargado/usuario pueda ver sus acuerdos</span>
+                    </div>
+
+                    <div class="predefined-area-banner">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-lock" style="color: #4f46e5; font-size: 0.85rem;"></i>
+                            <span style="font-size: 0.8rem; color: #475569;">Área Predeterminada:</span>
+                            <strong id="editUserPredefinedArea" style="font-size: 0.85rem; color: #1e293b;">-</strong>
+                        </div>
+                        <span class="badge-predefined">Predefinida</span>
+                    </div>
+
+                    <div style="margin-bottom: 0.35rem;">
+                        <span style="font-size: 0.75rem; font-weight: 600; color: #475569;">
+                            Permitir ver y gestionar acuerdos de otra(s) área(s):
+                        </span>
+                    </div>
+                    <div class="areas-selector-box">
+                        @foreach($allAreas as $area)
+                            <label class="area-checkbox-item edit-area-item" data-area-id="{{ $area->id }}" data-area-name="{{ $area->name }}">
+                                <input type="checkbox" name="edit_areas[]" value="{{ $area->id }}" class="edit-area-check">
+                                <span class="area-color-dot" style="background: {{ $area->color ?? '#6366f1' }};"></span>
+                                <span class="area-item-name">{{ $area->name }}</span>
+                                <span class="area-predefined-tag" style="display: none; margin-left: auto; font-size: 0.65rem; background: #e0e7ff; color: #4338ca; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-weight: 600;">(Base)</span>
+                            </label>
+                        @endforeach
                     </div>
                 </div>
 
@@ -762,13 +855,56 @@
     // Modal Helpers
     function openGrantAccessModal() {
         document.getElementById('grantAccessForm').reset();
+        const nameEl = document.getElementById('grantPredefinedAreaName');
+        if (nameEl) nameEl.innerText = 'Selecciona un colaborador';
+        document.querySelectorAll('.grant-area-item').forEach(item => {
+            const cb = item.querySelector('.grant-area-check');
+            const baseTag = item.querySelector('.area-predefined-tag');
+            if (cb) {
+                cb.checked = false;
+                cb.disabled = false;
+            }
+            item.classList.remove('item-predefined-locked');
+            if (baseTag) baseTag.style.display = 'none';
+        });
         document.getElementById('grantAccessModal').style.display = 'flex';
     }
     function closeGrantAccessModal() {
         document.getElementById('grantAccessModal').style.display = 'none';
     }
 
-    function openEditUserModal(user, roles, permissions) {
+    // Detector de cambio de colaborador en Modal de Concesión Avanzada
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalGrantUserSelect = document.getElementById('modalGrantUserId');
+        if (modalGrantUserSelect) {
+            modalGrantUserSelect.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                const defaultArea = (opt ? opt.getAttribute('data-default-area') : '') || 'Sin Área';
+                const nameEl = document.getElementById('grantPredefinedAreaName');
+                if (nameEl) nameEl.innerText = defaultArea;
+
+                document.querySelectorAll('.grant-area-item').forEach(item => {
+                    const areaName = (item.dataset.areaName || '').trim().toUpperCase();
+                    const cb = item.querySelector('.grant-area-check');
+                    const baseTag = item.querySelector('.area-predefined-tag');
+
+                    if (this.value && areaName === defaultArea.toUpperCase()) {
+                        cb.checked = true;
+                        cb.disabled = true;
+                        item.classList.add('item-predefined-locked');
+                        if (baseTag) baseTag.style.display = 'inline-block';
+                    } else {
+                        cb.checked = false;
+                        cb.disabled = false;
+                        item.classList.remove('item-predefined-locked');
+                        if (baseTag) baseTag.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+
+    function openEditUserModal(user, roles, permissions, additionalAreaIds) {
         if (user.email === 'soporte@mapetzin.com') {
             Swal.fire({
                 icon: 'info',
@@ -785,13 +921,46 @@
         document.getElementById('editUserPosition').innerText = user.position || 'Sin Puesto';
         document.getElementById('editUserAvatar').innerText = user.name.substring(0, 2).toUpperCase();
 
+        // Configurar Área Predefinida
+        const primaryArea = user.area || 'Sin Área';
+        const primaryAreaEl = document.getElementById('editUserPredefinedArea');
+        if (primaryAreaEl) primaryAreaEl.innerText = primaryArea;
+        const primaryBadgeEl = document.getElementById('editUserPredefinedAreaBadge');
+        if (primaryBadgeEl) primaryBadgeEl.innerText = primaryArea;
+
+        // Roles
         const currentRole = (roles && roles.length) ? roles[0] : 'Usuario';
         document.querySelectorAll('.edit-role-radio').forEach(rb => {
             rb.checked = (rb.value === currentRole);
         });
 
+        // Permisos directos
         document.querySelectorAll('.edit-perm-check').forEach(cb => {
             cb.checked = permissions && permissions.includes(cb.value);
+        });
+
+        // Áreas de acceso
+        const assignedIds = (additionalAreaIds && Array.isArray(additionalAreaIds)) 
+            ? additionalAreaIds 
+            : (user.additional_area_ids || []);
+
+        document.querySelectorAll('.edit-area-item').forEach(item => {
+            const areaName = (item.dataset.areaName || '').trim().toUpperCase();
+            const areaId = parseInt(item.dataset.areaId);
+            const cb = item.querySelector('.edit-area-check');
+            const baseTag = item.querySelector('.area-predefined-tag');
+
+            if (areaName === primaryArea.toUpperCase()) {
+                cb.checked = true;
+                cb.disabled = true;
+                item.classList.add('item-predefined-locked');
+                if (baseTag) baseTag.style.display = 'inline-block';
+            } else {
+                cb.disabled = false;
+                item.classList.remove('item-predefined-locked');
+                if (baseTag) baseTag.style.display = 'none';
+                cb.checked = assignedIds.includes(areaId);
+            }
         });
 
         document.getElementById('editUserModal').style.display = 'flex';
@@ -855,12 +1024,14 @@
         grantAccessForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const selectedPerms = Array.from(document.querySelectorAll('input[name="grant_permissions[]"]:checked')).map(cb => cb.value);
+            const selectedAreas = Array.from(document.querySelectorAll('input[name="grant_areas[]"]:checked:not(:disabled)')).map(cb => parseInt(cb.value));
             const selectedRoleEl = document.querySelector('input[name="modal_grant_role"]:checked');
 
             const data = {
                 user_id: document.getElementById('modalGrantUserId').value,
                 role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
                 permissions: selectedPerms,
+                areas: selectedAreas,
                 _token: '{{ csrf_token() }}'
             };
 
@@ -895,11 +1066,13 @@
             e.preventDefault();
             const userId = document.getElementById('editUserId').value;
             const selectedPerms = Array.from(document.querySelectorAll('input[name="edit_permissions[]"]:checked')).map(cb => cb.value);
+            const selectedAreas = Array.from(document.querySelectorAll('input[name="edit_areas[]"]:checked:not(:disabled)')).map(cb => parseInt(cb.value));
             const selectedRoleEl = document.querySelector('input[name="edit_user_role"]:checked');
 
             const data = {
                 role: selectedRoleEl ? selectedRoleEl.value : 'Usuario',
                 permissions: selectedPerms,
+                areas: selectedAreas,
                 _token: '{{ csrf_token() }}'
             };
 
@@ -2049,6 +2222,98 @@
 
     .perm-checkbox-item input[type="checkbox"] {
         cursor: pointer;
+    }
+
+    /* Estilos de Configuración de Áreas */
+    .badge-predefined {
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 0.2rem 0.55rem;
+        border-radius: 9999px;
+        border: 1px solid #c7d2fe;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .badge-extra-area {
+        font-size: 0.68rem;
+        font-weight: 600;
+        background: #f8fafc;
+        color: #475569;
+        border: 1px dashed #cbd5e1;
+        padding: 0.15rem 0.45rem;
+        border-radius: 0.35rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    .predefined-area-banner {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.65rem 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .areas-selector-box {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        background: #f8fafc;
+        max-height: 220px;
+        overflow-y: auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .area-checkbox-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.4rem;
+        padding: 0.5rem 0.65rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-size: 0.78rem;
+        color: #334155;
+    }
+
+    .area-checkbox-item:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    .area-checkbox-item.item-predefined-locked {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        cursor: not-allowed;
+        opacity: 0.88;
+    }
+
+    .area-color-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    .area-item-name {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 </style>
 @endsection

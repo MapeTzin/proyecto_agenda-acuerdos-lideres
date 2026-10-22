@@ -38,7 +38,7 @@ class RolePermissionController extends Controller
             ->keyBy('user_id');
 
         // 2. Consulta de usuarios con acceso (únicamente usuarios con roles asignados)
-        $query = User::with(['roles', 'permissions'])
+        $query = User::with(['roles', 'permissions', 'additionalAreas'])
             ->where('is_active', 1)
             ->has('roles');
 
@@ -76,7 +76,10 @@ class RolePermissionController extends Controller
         $permissions = Permission::orderBy('name')->get();
         $permissionsGrouped = $this->groupPermissions($permissions);
 
-        // 5. Usuarios disponibles de Auth Center que aún no tienen roles asignados
+        // 5. Catálogo completo de áreas locales
+        $allAreas = \App\Models\Area::orderBy('name')->get();
+
+        // 6. Usuarios disponibles de Auth Center que aún no tienen roles asignados
         $usersWithRolesIds = DB::table('model_has_roles')
             ->where('model_type', User::class)
             ->pluck('model_id')
@@ -90,6 +93,7 @@ class RolePermissionController extends Controller
             ->get(['id', 'name', 'email', 'position', 'department_id'])
             ->map(function ($u) use ($departments) {
                 $u->department_name = $departments[$u->department_id] ?? 'Sin Departamento';
+                $u->default_area = User::mapDepartmentToArea($u->department_name, $u->email);
                 return $u;
             });
 
@@ -101,12 +105,13 @@ class RolePermissionController extends Controller
             'roles',
             'permissions',
             'permissionsGrouped',
-            'availableAuthUsers'
+            'availableAuthUsers',
+            'allAreas'
         ));
     }
 
     /**
-     * Otorga acceso a un usuario de Auth Center (Asigna rol y sincroniza user_system_access).
+     * Otorga acceso a un usuario de Auth Center (Asigna rol, áreas y sincroniza user_system_access).
      */
     public function grantAccess(Request $request)
     {
@@ -117,6 +122,8 @@ class RolePermissionController extends Controller
             'role' => 'required|string|exists:roles,name',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'areas' => 'nullable|array',
+            'areas.*' => 'integer|exists:areas,id',
         ], [
             'user_id.required' => 'Debe seleccionar un usuario.',
             'role.required' => 'Debe seleccionar un rol.',
@@ -133,7 +140,12 @@ class RolePermissionController extends Controller
             $user->syncPermissions($request->permissions);
         }
 
-        // 3. Sincronizar en Auth Center (user_system_access)
+        // 3. Sincronizar áreas adicionales permitidas
+        if ($request->has('areas')) {
+            $user->additionalAreas()->sync($request->areas ?? []);
+        }
+
+        // 4. Sincronizar en Auth Center (user_system_access)
         $synced = $this->authCenterService->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
         // Limpiar caché de permisos
@@ -146,7 +158,7 @@ class RolePermissionController extends Controller
     }
 
     /**
-     * Actualiza los roles y permisos de un usuario existente.
+     * Actualiza los roles, permisos y áreas adicionales de un usuario existente.
      */
     public function updateUserAccess(Request $request, User $user)
     {
@@ -163,6 +175,8 @@ class RolePermissionController extends Controller
             'role' => 'required|string|exists:roles,name',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'areas' => 'nullable|array',
+            'areas.*' => 'integer|exists:areas,id',
         ], [
             'role.required' => 'El rol es obligatorio.',
             'role.exists' => 'El rol seleccionado no es válido.',
@@ -174,7 +188,10 @@ class RolePermissionController extends Controller
         // 2. Actualizar permisos directos
         $user->syncPermissions($request->permissions ?? []);
 
-        // 3. Asegurar estado activo en Auth Center
+        // 3. Actualizar áreas adicionales de acceso
+        $user->additionalAreas()->sync($request->areas ?? []);
+
+        // 4. Asegurar estado activo en Auth Center
         $this->authCenterService->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
         // Limpiar caché
@@ -182,12 +199,12 @@ class RolePermissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Roles y permisos actualizados correctamente para {$user->name}.",
+            'message' => "Roles, permisos y áreas de acceso actualizados correctamente para {$user->name}.",
         ]);
     }
 
     /**
-     * Revoca el acceso de un usuario (remueve roles y desactiva en Auth Center).
+     * Revoca el acceso de un usuario (remueve roles, permisos, áreas y desactiva en Auth Center).
      */
     public function revokeAccess(User $user)
     {
@@ -200,9 +217,10 @@ class RolePermissionController extends Controller
             ], 422);
         }
 
-        // 1. Remover roles y permisos locales
+        // 1. Remover roles, permisos locales y áreas adicionales
         $user->syncRoles([]);
         $user->syncPermissions([]);
+        $user->additionalAreas()->detach();
 
         // 2. Desactivar en Auth Center
         $this->authCenterService->revokeSystemAccess($user->id, 'agenda_acuerdos');

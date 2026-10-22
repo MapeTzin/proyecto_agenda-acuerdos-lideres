@@ -15,4 +15,9 @@ class Area extends Model
     {
         return $this->hasMany(Event::class);
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_areas', 'area_id', 'user_id');
+    }
 }
