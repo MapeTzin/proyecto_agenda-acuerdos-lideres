@@ -151,8 +151,9 @@ class KpisAreas extends Component
 
     public function selectArea($areaName)
     {
-        if (!$this->isAdminUser && $areaName !== $this->userAreaName) {
-            return; // Non-admin cannot switch to other areas
+        $allowedAreas = auth()->user() ? (auth()->user()->areas ?? [$this->userAreaName]) : [$this->userAreaName];
+        if (!$this->isAdminUser && !in_array($areaName, $allowedAreas) && $areaName !== $this->userAreaName) {
+            return; // Non-admin cannot switch to unauthorized areas
         }
         $this->selectedArea = $areaName;
         $this->loadKpiData();
@@ -160,7 +161,8 @@ class KpisAreas extends Component
 
     public function updatedSelectedArea()
     {
-        if (!$this->isAdminUser && empty($this->selectedArea)) {
+        $allowedAreas = auth()->user() ? (auth()->user()->areas ?? [$this->userAreaName]) : [$this->userAreaName];
+        if (!$this->isAdminUser && (empty($this->selectedArea) || (!in_array($this->selectedArea, $allowedAreas) && $this->selectedArea !== $this->userAreaName))) {
             $this->selectedArea = $this->userAreaName;
         }
         $this->loadKpiData();

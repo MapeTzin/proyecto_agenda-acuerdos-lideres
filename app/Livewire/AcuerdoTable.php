@@ -100,8 +100,10 @@ class AcuerdoTable extends Component
             'ASIS ADM',
             'ADQUISICIONES',
             'SISTEMAS Y TI',
-            'CONTABILIDAD Y CXC',
-            'CULTURA ORGANIZACIONAL'
+            'CONTABILIDAD',
+            'CUENTAS POR COBRAR',
+            'CULTURA ORGANIZACIONAL',
+            'CONTABILIDAD Y CXC'
         ];
 
         $areas = \App\Models\Area::pluck('name')->sortBy(function ($area) use ($customOrder) {

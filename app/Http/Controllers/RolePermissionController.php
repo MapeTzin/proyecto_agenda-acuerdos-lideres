@@ -76,8 +76,16 @@ class RolePermissionController extends Controller
         $permissions = Permission::orderBy('name')->get();
         $permissionsGrouped = $this->groupPermissions($permissions);
 
-        // 5. Catálogo completo de áreas locales
-        $allAreas = \App\Models\Area::orderBy('name')->get();
+        // 5. Catálogo completo de áreas locales ordenadas según estándar de KPIs
+        $customAreaOrder = [
+            'ALMACEN', 'VENTAS', 'COMERCIAL', 'ASEGURAMIENTO DE CALIDAD',
+            'CAPITAL HUMANO', 'JEFATURA DE STAFF', 'ASIS ADM', 'ADQUISICIONES',
+            'SISTEMAS Y TI', 'CONTABILIDAD', 'CUENTAS POR COBRAR', 'CULTURA ORGANIZACIONAL'
+        ];
+        $allAreas = \App\Models\Area::all()->sortBy(function ($area) use ($customAreaOrder) {
+            $pos = array_search(strtoupper($area->name), $customAreaOrder);
+            return $pos === false ? 999 : $pos;
+        })->values();
 
         // 6. Usuarios disponibles de Auth Center que aún no tienen roles asignados
         $usersWithRolesIds = DB::table('model_has_roles')

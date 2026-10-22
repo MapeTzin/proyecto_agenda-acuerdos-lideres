@@ -86,8 +86,10 @@ class Dashboard extends Component
             'ASIS ADM',
             'ADQUISICIONES',
             'SISTEMAS Y TI',
-            'CONTABILIDAD Y CXC',
-            'CULTURA ORGANIZACIONAL'
+            'CONTABILIDAD',
+            'CUENTAS POR COBRAR',
+            'CULTURA ORGANIZACIONAL',
+            'CONTABILIDAD Y CXC'
         ]);
         $cumplimiento_areas = [];
 

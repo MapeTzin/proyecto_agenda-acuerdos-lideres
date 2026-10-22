@@ -54,7 +54,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    protected $appends = ['has_access', 'additional_area_ids'];
+    protected $appends = ['has_access', 'area', 'additional_area_ids'];
 
     protected static $departmentCache = [];
 
@@ -82,12 +82,12 @@ class User extends Authenticatable
             'Almacen' => 'ALMACEN',
             'Calidad' => 'ASEGURAMIENTO DE CALIDAD',
             'Recursos Humanos' => 'CAPITAL HUMANO',
-            'Cuentas por Cobrar' => 'CONTABILIDAD Y CXC',
+            'Cuentas por Cobrar' => 'CUENTAS POR COBRAR',
             'Sistemas y Tecnología' => 'SISTEMAS Y TI',
             'SISTEMAS Y TI' => 'SISTEMAS Y TI',
             'Ventas' => 'VENTAS',
             'Licitaciones' => 'VENTAS', // As per User request: Cesar Osbaldo is Ventas
-            'Contabilidad' => 'CONTABILIDAD Y CXC',
+            'Contabilidad' => 'CONTABILIDAD',
             'Administración' => 'ASIS ADM', // Assumption based on ADM
             'Dirección' => 'CULTURA ORGANIZACIONAL', // Dynamic DB area
             'Proyecto ISSSTE' => 'JEFATURA DE STAFF', // Main ISSSTE administration area
@@ -159,7 +159,12 @@ class User extends Authenticatable
 
         $merged = array_unique(array_merge($areas, $additional));
 
-        return !empty($merged) ? array_values($merged) : [$primary];
+        // Retrocompatibilidad con acuerdos históricos de 'CONTABILIDAD Y CXC'
+        if (in_array('CONTABILIDAD', $merged) || in_array('CUENTAS POR COBRAR', $merged)) {
+            $merged[] = 'CONTABILIDAD Y CXC';
+        }
+
+        return !empty($merged) ? array_values(array_unique($merged)) : [$primary];
     }
 
     public function getPositionAttribute()
