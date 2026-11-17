@@ -1,7 +1,26 @@
 <div wire:poll.600s>
-    <div style="margin-bottom: 2rem;">
-        <h2 style="margin: 0;">Dashboard General</h2>
-        <p style="color: var(--secondary); margin-top: 0.25rem;">Estado global de todos los acuerdos operativa</p>
+    <div class="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div
+                class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-white"
+                style="background: linear-gradient(135deg, #460046 0%, #CC3D77 50%, #FF558A 100%); box-shadow: 0 4px 14px rgba(204, 61, 119, 0.30);"
+            >
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-tight">
+                    Dashboard General
+                </h2>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                    Monitoreo integral de acuerdos, seguimiento por área y cumplimiento operativo.
+                </p>
+            </div>
+        </div>
+        <div class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium sm:text-right shrink-0">
+            Bienvenido, <span class="font-black text-slate-900 dark:text-white">{{ Auth::user()?->name ?? 'Usuario' }}</span>
+        </div>
     </div>
 
     @if($sin_actualizar->count() > 0)

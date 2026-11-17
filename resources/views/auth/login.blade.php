@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Agenda de Acuerdos OS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 2325 2290' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient x1='1175.85' y1='16.8703' x2='3225.15' y2='2459.13' gradientUnits='userSpaceOnUse' id='f'%3E%3Cstop offset='0' stop-color='%23460046'/%3E%3Cstop offset='0.5' stop-color='%23CC3D77'/%3E%3Cstop offset='1' stop-color='%23FF558A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='translate(-1038 -93)'%3E%3Cpath d='M1059.5 391.488C1059.5 238.511 1183.5 114.5 1336.46 114.5L3064.54 114.5C3217.5 114.5 3341.5 238.511 3341.5 391.488L3341.5 2084.51C3341.5 2237.49 3217.5 2361.5 3064.54 2361.5L1336.46 2361.5C1183.5 2361.5 1059.5 2237.49 1059.5 2084.51Z' stroke='%23FFFFFF' stroke-width='42.8365' fill='url(%23f)'/%3E%3Cpath d='M1648.77 701.295 1825.48 712.005 1820.9 787.491C1819.07 817.811 1842.16 843.88 1872.48 845.718 1902.8 847.555 1928.87 824.466 1930.7 794.146L1935.28 718.659 2525.45 754.428 2520.87 829.915C2519.03 860.235 2542.12 886.304 2572.44 888.141 2602.76 889.979 2628.83 866.889 2630.67 836.569L2635.24 761.083 2811.95 771.793C2876.38 775.698 2925.45 831.094 2921.54 895.524L2867.06 1794.5C2863.15 1858.93 2807.75 1907.99 2743.32 1904.09L1580.15 1833.59C1515.72 1829.69 1466.65 1774.29 1470.56 1709.86L1525.04 810.885C1528.95 746.455 1584.34 697.39 1648.77 701.295Z' stroke='%23FFFFFF' stroke-width='45.8333' fill='%23FFFFFF' fill-opacity='0.2'/%3E%3Cpath d='M1615.47 1179.69C1616.57 1161.68 1632.04 1147.98 1650.04 1149.07L2756.61 1216.13C2774.61 1217.22 2788.32 1232.7 2787.23 1250.7L2757.28 1744.8C2756.19 1762.8 2740.71 1776.51 2722.71 1775.42L1616.15 1708.35C1598.15 1707.26 1584.44 1691.78 1585.53 1673.78Z' stroke='%23FFFFFF' stroke-width='45.8333' fill='%23000000' fill-opacity='0.25'/%3E%3C/g%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Righteous&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -358,18 +359,12 @@
 
     <div class="login-container">
         <div class="login-card">
-            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem;">
-                <div
-                    style="border: 3px solid var(--primary); padding: 12px 18px; display: flex; align-items: center; gap: 10px; border-radius: 8px; position: relative; background: rgba(99, 102, 241, 0.05);">
-                    <span style="font-size: 2.2rem; font-weight: 800; color: white;">M</span>
-                    <i class="fas fa-sparkles" style="font-size: 1rem; color: var(--primary);"></i>
-                    <span style="font-size: 2.2rem; font-weight: 800; color: white;">T</span>
-                    <span
-                        style="position: absolute; top: -12px; right: -12px; font-size: 0.7rem; border: 1px solid white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: var(--dark);">R</span>
-                </div>
-                <div style="margin-top: 15px; font-size: 1.1rem; font-weight: 700; color: white; letter-spacing: 2px;">
-                    MAPE+TZIN<br>
-                    <span style="font-size: 0.8rem; color: #94a3b8; font-weight: 400;">GOBIERNO</span>
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.75rem;">
+                <x-icons.agenda-logo style="width: 68px; height: 68px; filter: drop-shadow(0 10px 24px rgba(255, 85, 138, 0.35));" />
+                <div style="margin-top: 0.9rem; display: flex; align-items: center; gap: 0.5rem; font-family: 'Righteous', sans-serif; color: white;">
+                    <span style="font-size: 1.25rem; letter-spacing: 0.04em;">Agenda</span>
+                    <span style="font-size: 0.9rem; opacity: 0.7;">|</span>
+                    <span style="font-size: 1.05rem; letter-spacing: 0.06em;">Acuerdos</span>
                 </div>
             </div>
             <h2 style="margin-top: 1rem;">Bienvenido</h2>

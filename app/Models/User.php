@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -19,6 +20,7 @@ class User extends Authenticatable
     }
 
     protected $connection = 'mysql';
+
     protected $table = 'auth_center.users';
 
     /**
@@ -58,6 +60,8 @@ class User extends Authenticatable
 
     protected static $departmentCache = [];
 
+    protected static $puestosCache = [];
+
     public static function mapDepartmentToArea(?string $rawDepartment, ?string $email = null): string
     {
         if ($email === 'produccion@mapetzin.com') { // Marlon
@@ -73,7 +77,7 @@ class User extends Authenticatable
             return 'SIN ÁREA';
         }
 
-        if (!$rawDepartment) {
+        if (! $rawDepartment) {
             return 'Sin Área';
         }
 
@@ -116,10 +120,10 @@ class User extends Authenticatable
         }
 
         $rawArea = $this->attributes['department'] ?? $this->attributes['departamento'] ?? null;
-        
-        if (!$rawArea && !empty($this->department_id)) {
-            if (!isset(self::$departmentCache[$this->department_id])) {
-                self::$departmentCache[$this->department_id] = \Illuminate\Support\Facades\DB::connection('mysql_auth')->table('departments')
+
+        if (! $rawArea && ! empty($this->department_id)) {
+            if (! isset(self::$departmentCache[$this->department_id])) {
+                self::$departmentCache[$this->department_id] = DB::connection('mysql_auth')->table('departments')
                     ->where('id', $this->department_id)
                     ->value('name');
             }
@@ -139,6 +143,7 @@ class User extends Authenticatable
         if ($this->relationLoaded('additionalAreas')) {
             return $this->additionalAreas->pluck('id')->toArray();
         }
+
         return $this->additionalAreas()->pluck('area_id')->toArray();
     }
 
@@ -164,18 +169,34 @@ class User extends Authenticatable
             $merged[] = 'CONTABILIDAD Y CXC';
         }
 
-        return !empty($merged) ? array_values(array_unique($merged)) : [$primary];
+        return ! empty($merged) ? array_values(array_unique($merged)) : [$primary];
     }
 
     public function getPositionAttribute()
     {
-        return $this->attributes['position'] ?? 'Sin Puesto';
+        if (array_key_exists('position', $this->attributes) && $this->attributes['position'] !== null) {
+            return $this->attributes['position'];
+        }
+        if (! empty($this->puesto_id)) {
+            if (! array_key_exists($this->puesto_id, self::$puestosCache)) {
+                self::$puestosCache[$this->puesto_id] = DB::connection('mysql_auth')
+                    ->table('puestos')
+                    ->where('id', $this->puesto_id)
+                    ->value('nombre');
+            }
+            if (! empty(self::$puestosCache[$this->puesto_id])) {
+                return self::$puestosCache[$this->puesto_id];
+            }
+        }
+
+        return 'Sin Puesto';
     }
 
     public function getAreaColorAttribute()
     {
         $areaName = $this->area;
-        $area = \App\Models\Area::where('name', $areaName)->first();
+        $area = Area::where('name', $areaName)->first();
+
         return $area->color ?? '#64748b';
     }
 
