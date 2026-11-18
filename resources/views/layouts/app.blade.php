@@ -528,6 +528,112 @@
             border-color: rgba(148, 163, 184, 0.16) !important;
         }
 
+        /* =========================================================================
+           Normalización Global de Vistas con Estilos Inline en Modo Nocturno
+           (Asegura cumplimiento de Dark_Theme.md en todas las vistas heredadas)
+           ========================================================================= */
+        html.dark main [style*="background: white"],
+        html.dark main [style*="background: #fff"],
+        html.dark main [style*="background: #ffffff"],
+        html.dark main [style*="background-color: white"],
+        html.dark main [style*="background-color: #fff"],
+        html.dark main [style*="background-color: #ffffff"],
+        html.dark main [style*="background: #f8fafc"],
+        html.dark main [style*="background: #f1f5f9"],
+        html.dark main [style*="background-color: #f8fafc"],
+        html.dark main [style*="background-color: #f1f5f9"] {
+            background: #1e293b !important;
+            background-color: #1e293b !important;
+            border-color: rgba(148, 163, 184, 0.14) !important;
+            color: #dae2fd !important;
+        }
+
+        /* Mantener inputs/selects/textareas en #0b132b incluso si tienen style="background: #f8fafc" */
+        html.dark main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), select, textarea)[style*="background"] {
+            background: #0b132b !important;
+            background-color: #0b132b !important;
+            color: #f8fafc !important;
+            border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        /* Cajas de íconos y alertas con fondos pastel */
+        html.dark main [style*="background: #eef2ff"],
+        html.dark main [style*="background: #e0e7ff"] {
+            background: rgba(129, 140, 248, 0.15) !important;
+            color: #818cf8 !important;
+            border-color: rgba(129, 140, 248, 0.3) !important;
+        }
+        html.dark main [style*="background: #fff5f5"] {
+            background: rgba(147, 0, 10, 0.25) !important;
+            border-color: rgba(248, 113, 113, 0.35) !important;
+        }
+        html.dark main [style*="background: #fff1f2"],
+        html.dark main [style*="background: #fee2e2"] {
+            background: rgba(248, 113, 113, 0.15) !important;
+            color: #f87171 !important;
+            border-color: rgba(248, 113, 113, 0.3) !important;
+        }
+        html.dark main [style*="background: #ecfdf5"],
+        html.dark main [style*="background: #f0fdf4"],
+        html.dark main [style*="background: #d1fae5"] {
+            background: rgba(52, 211, 153, 0.15) !important;
+            color: #34d399 !important;
+            border-color: rgba(52, 211, 153, 0.3) !important;
+        }
+        html.dark main [style*="background: #fef3c7"],
+        html.dark main [style*="background: #fffbeb"] {
+            background: rgba(250, 204, 21, 0.15) !important;
+            color: #facc15 !important;
+            border-color: rgba(250, 204, 21, 0.3) !important;
+        }
+        html.dark main [style*="background: #eff6ff"],
+        html.dark main [style*="background: #dbeafe"] {
+            background: rgba(96, 165, 250, 0.15) !important;
+            color: #93c5fd !important;
+            border-color: rgba(96, 165, 250, 0.3) !important;
+        }
+
+        /* Textos oscuros inline en modo nocturno */
+        html.dark main [style*="color: #0f172a"],
+        html.dark main [style*="color: #1e293b"],
+        html.dark main [style*="color: var(--dark)"] {
+            color: #f8fafc !important;
+        }
+        html.dark main [style*="color: #334155"],
+        html.dark main [style*="color: #475569"] {
+            color: #cbd5e1 !important;
+        }
+        html.dark main [style*="color: #64748b"],
+        html.dark main [style*="color: var(--secondary)"] {
+            color: #94a3b8 !important;
+        }
+        html.dark main [style*="color: #c53030"],
+        html.dark main [style*="color: #9b2c2c"] {
+            color: #fca5a5 !important;
+        }
+        html.dark main :is(h1, h2, h3, h4, p, span, div, label, a, strong)[style*="color: var(--primary)"] {
+            color: #adc6ff !important;
+        }
+
+        /* Bordes claros inline en modo nocturno */
+        html.dark main [style*="border: 1px solid #e2e8f0"],
+        html.dark main [style*="border: 1px solid #f1f5f9"],
+        html.dark main [style*="border-left: 2px solid #f1f5f9"],
+        html.dark main [style*="border-bottom: 1px solid #e2e8f0"],
+        html.dark main [style*="border-top: 1px solid #e2e8f0"] {
+            border-color: rgba(148, 163, 184, 0.14) !important;
+        }
+
+        /* Popovers de KPIs (Level 2 Elevated Tooling #253349) */
+        html.dark .kpi-popover {
+            background: #253349 !important;
+            box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(148, 163, 184, 0.2) !important;
+            color: #dae2fd !important;
+        }
+        html.dark .kpi-popover::after {
+            border-color: #253349 transparent transparent transparent !important;
+        }
+
         @keyframes pulse-critical {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.85; transform: scale(1.03); }
