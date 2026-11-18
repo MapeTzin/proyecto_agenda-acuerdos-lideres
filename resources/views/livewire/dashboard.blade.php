@@ -1,5 +1,5 @@
 <div wire:poll.600s>
-    <div class="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="bg-white dark:bg-[#1e293b] border border-slate-200/80 dark:border-slate-400/15 rounded-2xl shadow-sm px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-3.5">
             <div
                 class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-white"
@@ -24,25 +24,21 @@
     </div>
 
     @if($sin_actualizar->count() > 0)
-        <div
-            style="background: #fff5f5; border: 1px solid #feb2b2; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: flex-start; gap: 1.25rem; border-left: 6px solid #f56565; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-            <div
-                style="background: #f56565; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; margin-top: 2px;">
+        <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 border-l-4 border-l-rose-500 rounded-xl p-5 mb-6 flex items-start gap-4 shadow-sm">
+            <div class="bg-rose-500 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 mt-0.5">
                 <i class="fas fa-history"></i>
             </div>
-            <div style="flex: 1;">
-                <h4
-                    style="color: #c53030; margin: 0; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.025em;">
+            <div class="flex-1">
+                <h4 class="text-rose-700 dark:text-rose-300 m-0 text-sm font-extrabold uppercase tracking-wide">
                     Alerta: Áreas sin Seguimiento Ayer
                 </h4>
-                <p style="color: #9b2c2c; margin: 0.35rem 0 0.75rem 0; font-size: 0.9rem; opacity: 0.9;">
+                <p class="text-rose-800/90 dark:text-rose-200/80 mt-1 mb-3 text-xs sm:text-sm">
                     Las siguientes áreas no registraron avances en sus acuerdos durante el día de ayer:
                 </p>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <div class="flex flex-wrap gap-2">
                     @foreach($sin_actualizar as $item)
-                        <span
-                            style="background: rgba(245, 101, 101, 0.1); color: #c53030; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(245, 101, 101, 0.2); display: inline-flex; align-items: center; gap: 0.4rem;">
-                            <span style="width: 6px; height: 6px; background: #f56565; border-radius: 50%;"></span>
+                        <span class="bg-rose-500/10 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 px-3 py-1 rounded-lg text-xs font-bold border border-rose-500/20 dark:border-rose-400/30 inline-flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
                             {{ $item->area }}
                         </span>
                     @endforeach
