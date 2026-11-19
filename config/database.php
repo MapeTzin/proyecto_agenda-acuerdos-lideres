@@ -17,6 +17,9 @@ return [
 
     'default' => env('DB_CONNECTION', 'mysql'),
 
+    'kpi_connection' => env('KPI_DB_CONNECTION', 'mysql'),
+    'kpi_unify_ti_with_tickets' => env('KPI_UNIFY_TI_WITH_TICKETS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Database Connections
@@ -46,6 +49,9 @@ return [
             'prefix'    => '',
             'strict'    => true,
             'engine'    => null,
+            'options'   => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
         ],
 
 

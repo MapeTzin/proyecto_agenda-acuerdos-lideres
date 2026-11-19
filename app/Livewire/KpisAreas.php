@@ -168,6 +168,21 @@ class KpisAreas extends Component
         $this->loadKpiData();
     }
 
+    protected function kpiDb(?string $area = null)
+    {
+        $targetArea = strtoupper(trim((string) ($area ?? $this->selectedArea ?? '')));
+        if (filter_var(config('database.kpi_unify_ti_with_tickets', false), FILTER_VALIDATE_BOOLEAN) && in_array($targetArea, ['SISTEMAS Y TI', 'TI', 'SISTEMAS'], true)) {
+            return DB::connection('sistema_tickets');
+        }
+
+        return DB::connection(config('database.kpi_connection', 'mysql'));
+    }
+
+    protected function kpiRangesDb()
+    {
+        return DB::connection(config('database.kpi_connection', 'mysql'));
+    }
+
     public function loadKpiData()
     {
         if (empty($this->selectedArea)) {
@@ -178,7 +193,7 @@ class KpisAreas extends Component
             return;
         }
 
-        $db = DB::connection('sistema_tickets');
+        $db = $this->kpiDb($this->selectedArea);
         
         $kpis = $db->table('kpis')
             ->where('is_active', 1)
@@ -288,7 +303,7 @@ class KpisAreas extends Component
             return;
         }
 
-        $db = DB::connection('sistema_tickets');
+        $db = $this->kpiDb($this->selectedArea);
         $totalWeeks = count($this->weeksList);
 
         foreach ($this->kpiValues as $kpiId => $weeks) {
@@ -405,7 +420,8 @@ class KpisAreas extends Component
 
     public function editKpi($kpiId)
     {
-        $db = DB::connection('sistema_tickets');
+        $db = $this->kpiDb(!empty($this->selectedArea) ? $this->selectedArea : null);
+        $rangesDb = $this->kpiRangesDb();
         $kpi = $db->table('kpis')->where('id', $kpiId)->first();
         if ($kpi) {
             $this->editingKpiId = $kpi->id;
@@ -415,7 +431,7 @@ class KpisAreas extends Component
             $this->newKpiTarget = $kpi->default_target !== null ? (float)$kpi->default_target : 95;
 
             // Load color ranges from kpi_ranges
-            $ranges = $db->table('kpi_ranges')->where('kpi_id', $kpiId)->get();
+            $ranges = $rangesDb->table('kpi_ranges')->where('kpi_id', $kpiId)->get();
             $greenRange = $ranges->firstWhere('color', 'green');
             $yellowRange = $ranges->whereIn('color', ['yellow', 'orange'])->first();
             $redRange = $ranges->firstWhere('color', 'red');
@@ -450,11 +466,12 @@ class KpisAreas extends Component
             'newKpiTargetRed' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $db = DB::connection('sistema_tickets');
         $targetGreen = (float)$this->newKpiTarget;
         $targetYellow = (float)$this->newKpiTargetYellow;
         $targetRed = is_numeric($this->newKpiTargetRed) ? (float)$this->newKpiTargetRed : $targetYellow;
         $areaCat = !empty($this->newKpiArea) ? $this->newKpiArea : (!empty($this->selectedArea) ? $this->selectedArea : 'CONTABILIDAD');
+        $db = $this->kpiDb($areaCat);
+        $rangesDb = $this->kpiRangesDb();
 
         if ($this->editingKpiId) {
             // Update existing KPI
@@ -515,11 +532,42 @@ class KpisAreas extends Component
             session()->flash('success', 'Nuevo KPI agregado correctamente.');
         }
 
+        // If writing to unified external DB, mirror KPI header in local agenda_acuerdos for FK integrity
+        $rangeKpiId = $savedKpiId;
+        if ($db->getDatabaseName() !== $rangesDb->getDatabaseName()) {
+            $extKpi = $db->table('kpis')->where('id', $savedKpiId)->first();
+            if ($extKpi) {
+                $localKpi = $rangesDb->table('kpis')->where('code', $extKpi->code)->first();
+                if ($localKpi) {
+                    $rangesDb->table('kpis')->where('id', $localKpi->id)->update([
+                        'name' => $extKpi->name,
+                        'description' => $extKpi->description,
+                        'category' => $extKpi->category,
+                        'default_target' => $extKpi->default_target,
+                        'is_active' => $extKpi->is_active,
+                        'updated_at' => now(),
+                    ]);
+                    $rangeKpiId = $localKpi->id;
+                } else {
+                    $rangeKpiId = $rangesDb->table('kpis')->insertGetId([
+                        'code' => $extKpi->code,
+                        'name' => $extKpi->name,
+                        'description' => $extKpi->description,
+                        'category' => $extKpi->category,
+                        'default_target' => $extKpi->default_target,
+                        'is_active' => $extKpi->is_active,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        }
+
         // Save ranges in kpi_ranges
-        $db->table('kpi_ranges')->where('kpi_id', $savedKpiId)->delete();
-        $db->table('kpi_ranges')->insert([
+        $rangesDb->table('kpi_ranges')->where('kpi_id', $rangeKpiId)->delete();
+        $rangesDb->table('kpi_ranges')->insert([
             [
-                'kpi_id' => $savedKpiId,
+                'kpi_id' => $rangeKpiId,
                 'min_value' => $targetGreen,
                 'max_value' => 100.00,
                 'color' => 'green',
@@ -529,7 +577,7 @@ class KpisAreas extends Component
                 'updated_at' => now(),
             ],
             [
-                'kpi_id' => $savedKpiId,
+                'kpi_id' => $rangeKpiId,
                 'min_value' => $targetYellow,
                 'max_value' => max($targetYellow, $targetGreen - 0.01),
                 'color' => 'yellow',
@@ -539,7 +587,7 @@ class KpisAreas extends Component
                 'updated_at' => now(),
             ],
             [
-                'kpi_id' => $savedKpiId,
+                'kpi_id' => $rangeKpiId,
                 'min_value' => 0.00,
                 'max_value' => max(0, $targetRed - 0.01),
                 'color' => 'red',
@@ -557,7 +605,7 @@ class KpisAreas extends Component
 
     public function deleteKpi($kpiId)
     {
-        $db = DB::connection('sistema_tickets');
+        $db = $this->kpiDb(!empty($this->selectedArea) ? $this->selectedArea : null);
         $db->table('kpis')->where('id', $kpiId)->update(['is_active' => 0, 'updated_at' => now()]);
         session()->flash('success', 'KPI eliminado exitosamente.');
         $this->loadKpiData();
@@ -565,7 +613,7 @@ class KpisAreas extends Component
 
     public function render()
     {
-        $db = DB::connection('sistema_tickets');
+        $rangesDb = $this->kpiRangesDb();
         
         $officialAreas = [
             'ALMACEN',
@@ -607,12 +655,13 @@ class KpisAreas extends Component
 
         $totalWeeks = count($this->weeksList);
 
-        $allKpiRanges = $db->table('kpi_ranges')
+        $allKpiRanges = $rangesDb->table('kpi_ranges')
             ->whereNotNull('kpi_id')
             ->get()
             ->groupBy('kpi_id');
 
         foreach ($officialAreas as $areaItem) {
+            $db = $this->kpiDb($areaItem);
             $kpisForArea = $db->table('kpis')
                 ->where('is_active', 1)
                 ->where(function($q) use ($areaItem) {
@@ -891,6 +940,7 @@ class KpisAreas extends Component
         $weeklyAverages = [];
 
         if (!empty($this->selectedArea)) {
+            $db = $this->kpiDb($this->selectedArea);
             $kpis = $db->table('kpis')
                 ->where('is_active', 1)
                 ->where(function($q) {
@@ -900,7 +950,7 @@ class KpisAreas extends Component
                 ->orderBy('id', 'asc')
                 ->get();
 
-            $kpiRanges = $db->table('kpi_ranges')
+            $kpiRanges = $rangesDb->table('kpi_ranges')
                 ->whereIn('kpi_id', $kpis->pluck('id'))
                 ->get()
                 ->groupBy('kpi_id');
