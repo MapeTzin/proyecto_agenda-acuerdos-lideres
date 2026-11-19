@@ -9,9 +9,8 @@ use App\Services\AuthCenterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\PermissionRegistrar;
+use App\Models\AuthCenter\Role;
+use App\Models\AuthCenter\Permission;
 
 class RolePermissionController extends Controller
 {
@@ -38,7 +37,7 @@ class RolePermissionController extends Controller
             ->keyBy('user_id');
 
         // 2. Consulta de usuarios con acceso (únicamente usuarios con roles asignados)
-        $query = User::with(['roles', 'permissions', 'additionalAreas'])
+        $query = User::with(['roles', 'permissions'])
             ->where('is_active', 1)
             ->has('roles');
 
@@ -79,7 +78,7 @@ class RolePermissionController extends Controller
         // 5. Catálogo completo de áreas locales ordenadas según estándar de KPIs
         $customAreaOrder = [
             'ALMACEN', 'VENTAS', 'COMERCIAL', 'ASEGURAMIENTO DE CALIDAD',
-            'CAPITAL HUMANO', 'JEFATURA DE STAFF', 'ASIS ADM', 'ADQUISICIONES',
+            'CAPITAL HUMANO', 'JEFATURA DE STAFF', 'ASIS ADMIN', 'ADQUISICIONES',
             'SISTEMAS Y TI', 'CONTABILIDAD', 'CUENTAS POR COBRAR', 'CULTURA ORGANIZACIONAL'
         ];
         $allAreas = \App\Models\Area::all()->sortBy(function ($area) use ($customAreaOrder) {
@@ -88,17 +87,22 @@ class RolePermissionController extends Controller
         })->values();
 
         // 6. Usuarios disponibles de Auth Center que aún no tienen roles asignados
-        $usersWithRolesIds = DB::table('model_has_roles')
-            ->where('model_type', User::class)
-            ->pluck('model_id')
+        $usersWithRolesIds = DB::connection('mysql_auth')->table('user_system_access')
+            ->where('system_id', $systemId)
+            ->where('is_active', 1)
+            ->whereNotNull('role_id')
+            ->pluck('user_id')
             ->toArray();
 
-        $departments = DB::connection('mysql_auth')->table('departments')->pluck('name', 'id');
+        $departments = DB::connection('mysql_auth')
+            ->table('departments')
+            ->whereNull('deleted_at')
+            ->pluck('name', 'id');
 
         $availableAuthUsers = AuthUser::where('is_active', 1)
             ->whereNotIn('id', $usersWithRolesIds)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'position', 'department_id'])
+            ->get(['id', 'name', 'email', 'puesto_id', 'department_id'])
             ->map(function ($u) use ($departments) {
                 $u->department_name = $departments[$u->department_id] ?? 'Sin Departamento';
                 $u->default_area = User::mapDepartmentToArea($u->department_name, $u->email);
@@ -150,14 +154,14 @@ class RolePermissionController extends Controller
 
         // 3. Sincronizar áreas adicionales permitidas
         if ($request->has('areas')) {
-            $user->additionalAreas()->sync($request->areas ?? []);
+            // 3NF: areas derived from auth_center.departments
         }
 
         // 4. Sincronizar en Auth Center (user_system_access)
         $synced = $this->authCenterService->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
         // Limpiar caché de permisos
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -197,13 +201,13 @@ class RolePermissionController extends Controller
         $user->syncPermissions($request->permissions ?? []);
 
         // 3. Actualizar áreas adicionales de acceso
-        $user->additionalAreas()->sync($request->areas ?? []);
+        // 3NF: areas derived from auth_center.departments
 
         // 4. Asegurar estado activo en Auth Center
         $this->authCenterService->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
 
         // Limpiar caché
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -228,13 +232,13 @@ class RolePermissionController extends Controller
         // 1. Remover roles, permisos locales y áreas adicionales
         $user->syncRoles([]);
         $user->syncPermissions([]);
-        $user->additionalAreas()->detach();
+        // 3NF: areas derived from auth_center.departments
 
         // 2. Desactivar en Auth Center
         $this->authCenterService->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
         // Limpiar caché
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -267,7 +271,7 @@ class RolePermissionController extends Controller
             $role->syncPermissions($request->permissions);
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -299,7 +303,7 @@ class RolePermissionController extends Controller
             $role->syncPermissions($request->permissions ?? []);
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -332,7 +336,7 @@ class RolePermissionController extends Controller
         $roleName = $role->name;
         $role->delete();
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,
@@ -359,7 +363,7 @@ class RolePermissionController extends Controller
             'guard_name' => 'web',
         ]);
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // 3NF: direct auth_center RBAC
 
         return response()->json([
             'success' => true,

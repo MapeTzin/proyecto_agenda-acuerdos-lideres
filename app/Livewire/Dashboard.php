@@ -83,7 +83,7 @@ class Dashboard extends Component
             'CAPITAL HUMANO',
             'ASEGURAMIENTO DE CALIDAD',
             'JEFATURA DE STAFF',
-            'ASIS ADM',
+            'ASIS ADMIN',
             'ADQUISICIONES',
             'SISTEMAS Y TI',
             'CONTABILIDAD',

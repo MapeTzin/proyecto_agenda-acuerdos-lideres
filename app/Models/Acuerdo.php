@@ -12,6 +12,7 @@ class Acuerdo extends Model
     protected $table = 'acuerdos';
 
     protected $fillable = [
+        'area_id',
         'area',
         'tipo_cuadrante',
         'actividad',

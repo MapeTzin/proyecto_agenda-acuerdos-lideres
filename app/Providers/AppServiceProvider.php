@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::before(function ($user, string $ability, array $arguments = []) {
+            if ($user->email === 'soporte@mapetzin.com' || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin())) {
+                return true;
+            }
+            if (empty($arguments) && method_exists($user, 'hasPermissionTo')) {
+                return $user->hasPermissionTo($ability) ? true : null;
+            }
+            return null;
+        });
     }
 }

@@ -9,7 +9,11 @@ class Bitacora extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['acuerdo_id', 'user_id', 'campo', 'valor_anterior', 'valor_nuevo', 'usuario'];
+    protected $fillable = ['acuerdo_id', 'user_id', 'campo', 'valor_anterior', 'valor_nuevo'];
+
+    protected $with = ['user'];
+
+    protected $appends = ['usuario'];
 
     public function acuerdo()
     {
@@ -18,6 +22,11 @@ class Bitacora extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function getUsuarioAttribute(): string
+    {
+        return $this->user?->name ?? 'Administrador';
     }
 }

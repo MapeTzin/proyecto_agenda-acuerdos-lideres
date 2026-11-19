@@ -118,9 +118,7 @@ class AuthController extends Controller
         }
 
         // 3. Obtener usuario del modelo User
-        $user = User::where('id', $authUser->id)
-            ->orWhere('email', $email)
-            ->first();
+        $user = User::find($authUser->id);
 
         if (!$user) {
             RateLimiter::hit($throttleKey, 60);
@@ -170,7 +168,7 @@ class AuthController extends Controller
         $user = Auth::user();
 
         // 1. Actualizar en Auth Center
-        \App\Models\AuthCenter\AuthUser::where('email', $user->email)->update([
+        \App\Models\AuthCenter\AuthUser::where('id', $user->id)->update([
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
             'password_changed_at' => now(),
             'failed_login_attempts' => 0,

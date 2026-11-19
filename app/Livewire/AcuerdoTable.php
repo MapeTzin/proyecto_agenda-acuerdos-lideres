@@ -97,7 +97,7 @@ class AcuerdoTable extends Component
             'ASEGURAMIENTO DE CALIDAD',
             'CAPITAL HUMANO',
             'JEFATURA DE STAFF',
-            'ASIS ADM',
+            'ASIS ADMIN',
             'ADQUISICIONES',
             'SISTEMAS Y TI',
             'CONTABILIDAD',

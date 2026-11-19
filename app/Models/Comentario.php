@@ -9,7 +9,11 @@ class Comentario extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['acuerdo_id', 'user_id', 'comentario', 'usuario'];
+    protected $fillable = ['acuerdo_id', 'user_id', 'comentario'];
+
+    protected $with = ['user'];
+
+    protected $appends = ['usuario'];
 
     public function acuerdo()
     {
@@ -18,6 +22,11 @@ class Comentario extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function getUsuarioAttribute(): string
+    {
+        return $this->user?->name ?? 'Administrador';
     }
 }

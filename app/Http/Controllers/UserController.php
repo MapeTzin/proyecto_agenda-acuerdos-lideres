@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Area;
-use Spatie\Permission\Models\Role;
+use App\Models\AuthCenter\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +36,7 @@ class UserController extends Controller
         $user->syncRoles([$request->role]);
 
         if ($request->has('areas')) {
-            $user->additionalAreas()->sync($request->areas ?? []);
+            // 3NF: areas derived from auth_center.departments
         }
 
         (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
@@ -61,7 +61,7 @@ class UserController extends Controller
         $user->syncRoles([$request->role]);
 
         if ($request->has('areas')) {
-            $user->additionalAreas()->sync($request->areas ?? []);
+            // 3NF: areas derived from auth_center.departments
         }
 
         (new \App\Services\AuthCenterService())->grantSystemAccess($user->id, Auth::id(), 'agenda_acuerdos');
@@ -78,7 +78,7 @@ class UserController extends Controller
         }
 
         $user->syncRoles([]);
-        $user->additionalAreas()->detach();
+        // 3NF: areas derived from auth_center.departments
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
         return response()->json(['success' => true, 'is_active' => false]);
@@ -93,7 +93,7 @@ class UserController extends Controller
         }
 
         $user->syncRoles([]);
-        $user->additionalAreas()->detach();
+        // 3NF: areas derived from auth_center.departments
         (new \App\Services\AuthCenterService())->revokeSystemAccess($user->id, 'agenda_acuerdos');
 
         return response()->json(['success' => true]);

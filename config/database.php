@@ -39,7 +39,7 @@ return [
     'connections' => [
         'mysql_auth' => [
             'driver'    => 'mysql',
-            'host'      => env('AUTH_DB_HOST', '192.168.100.12'),
+            'host'      => env('AUTH_DB_HOST', '192.168.100.13'),
             'port'      => env('AUTH_DB_PORT', '3306'),
             'database'  => env('AUTH_DB_DATABASE', 'auth_center'),
             'username'  => env('AUTH_DB_USERNAME', 'admindb'),
@@ -51,7 +51,8 @@ return [
             'engine'    => null,
             'options'   => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ], fn($v) => $v !== null && $v !== '') : [],
         ],
 
 
@@ -81,7 +82,8 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ], fn($v) => $v !== null && $v !== '') : [],
         ],
 
         'sistema_tickets' => [
@@ -101,7 +103,8 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ], fn($v) => $v !== null && $v !== '') : [],
         ],
 
         'areaskpi' => [
@@ -121,7 +124,8 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ], fn($v) => $v !== null && $v !== '') : [],
         ],
 
         'pgsql' => [

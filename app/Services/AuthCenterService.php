@@ -14,7 +14,8 @@ class AuthCenterService
     public function findUserByEmail(string $email): ?AuthUser
     {
         try {
-            return AuthUser::where('email', $email)->first();
+            $normalized = strtolower(trim($email));
+            return AuthUser::where('email', $normalized)->first();
         } catch (\Exception $e) {
             Log::error('AuthCenterService::findUserByEmail: ' . $e->getMessage());
             return null;

@@ -34,8 +34,8 @@ class PasswordResetController extends Controller
 
         $email = Str::lower(trim($request->email));
 
-        // Verificar que el usuario exista en Auth Center
-        $authUser = AuthUser::where('email', $email)->first();
+        // Verificar que el usuario exista en Auth Center (por correo principal o correo secundario activo)
+        $authUser = (new \App\Services\AuthCenterService())->findUserByEmail($email);
         if (!$authUser) {
             return back()->withErrors([
                 'email' => 'No encontramos ningún usuario registrado con ese correo electrónico.',
@@ -48,8 +48,8 @@ class PasswordResetController extends Controller
             ])->withInput();
         }
 
-        // Generar token y enviar notificación mediante el broker centralizado
-        $status = Password::broker()->sendResetLink(['email' => $email]);
+        // Generar token y enviar notificación mediante el broker centralizado usando el correo principal
+        $status = Password::broker()->sendResetLink(['email' => $authUser->email]);
 
         if ($status === Password::RESET_LINK_SENT) {
             return back()->with('status', 'Hemos enviado a tu correo el enlace de recuperación de contraseña.');

@@ -116,7 +116,7 @@ class KpisAreas extends Component
         if (str_contains($userArea, 'VENTAS') || str_contains($userArea, 'LICITACION')) return 'VENTAS';
         if (str_contains($userArea, 'COMERCIAL')) return 'COMERCIAL';
         if (str_contains($userArea, 'STAFF')) return 'JEFATURA DE STAFF';
-        if (str_contains($userArea, 'ASIS') || str_contains($userArea, 'ADM')) return 'ASIS ADM';
+        if (str_contains($userArea, 'ASIS') || str_contains($userArea, 'ADM')) return 'ASIS ADMIN';
         if (str_contains($userArea, 'CULTURA')) return 'CULTURA ORGANIZACIONAL';
 
         return 'CONTABILIDAD';
@@ -622,7 +622,7 @@ class KpisAreas extends Component
             'ASEGURAMIENTO DE CALIDAD',
             'CAPITAL HUMANO',
             'JEFATURA DE STAFF',
-            'ASIS ADM',
+            'ASIS ADMIN',
             'ADQUISICIONES',
             'SISTEMAS Y TI',
             'CONTABILIDAD',

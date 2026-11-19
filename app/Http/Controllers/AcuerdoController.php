@@ -80,7 +80,7 @@ class AcuerdoController extends Controller
                     if ($cat === 'ALMACEN') return true;
                 }
                 if (str_contains($areaUpper, 'ASIS') || str_contains($areaUpper, 'ADM')) {
-                    if ($cat === 'ASIS ADM') return true;
+                    if ($cat === 'ASIS ADMIN' || $cat === 'ASIS ADM') return true;
                 }
                 return false;
             })->pluck('name')->unique()->values()->toArray();
@@ -190,8 +190,7 @@ class AcuerdoController extends Controller
             // Registrar el motivo como un comentario oficial
             $acuerdo->comentarios_extra()->create([
                 'comentario' => "🔄 CAMBIO DE FECHA COMPROMISO: de " . \Carbon\Carbon::parse($fechaCompromisoOriginal)->format('d/m/Y') . " a " . \Carbon\Carbon::parse($fechaCompromisoNueva)->format('d/m/Y') . ".\nMOTIVO: " . $motivo,
-                'user_id' => auth()->id(),
-                'usuario' => auth()->user()->name
+                'user_id' => auth()->id()
             ]);
         }
 
@@ -216,7 +215,6 @@ class AcuerdoController extends Controller
                     'campo' => $key,
                     'valor_anterior' => (string) $oldValue,
                     'valor_nuevo' => (string) $newValue,
-                    'usuario' => auth()->user()->name,
                 ]);
             }
         }
@@ -255,8 +253,7 @@ class AcuerdoController extends Controller
 
         $acuerdo->comentarios_extra()->create([
             'comentario' => $request->comentario,
-            'user_id' => auth()->id(),
-            'usuario' => auth()->user()->name
+            'user_id' => auth()->id()
         ]);
 
         $acuerdo->calculateAutomaticProgress(); // Detona el cálculo automático al comentar
